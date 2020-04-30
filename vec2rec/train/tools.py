@@ -20,7 +20,7 @@ def read_corpus(df, token_only=False):
             n += 1
 
 
-def build_corpus(line=None, job=None, resume=None, training=None, test_ratio=1 / 3):
+def build_corpus(job=None, resume=None, training=None, test_ratio=1 / 3):
     # TODO: refactor load_*.py into functions to be used here
     df_res = pdf_to_dataframe(resume).tokens
 
@@ -34,8 +34,10 @@ def build_corpus(line=None, job=None, resume=None, training=None, test_ratio=1 /
     return train_corpus, test_corpus
 
 
-def train_doc2vec(train_corpus, file_path, to_file=False, vector_size=75, min_count=2, epochs=40):
-    model = Doc2Vec( vector_size=vector_size, min_count=min_count, epochs=epochs )
+def train_doc2vec(
+    train_corpus, file_path, to_file=False, vector_size=75, min_count=2, epochs=40
+):
+    model = Doc2Vec(vector_size=vector_size, min_count=min_count, epochs=epochs)
 
     model.build_vocab(train_corpus)
     model.train(train_corpus, total_examples=model.corpus_count, epochs=model.epochs)

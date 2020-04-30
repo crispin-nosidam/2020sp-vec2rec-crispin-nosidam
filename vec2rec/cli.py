@@ -82,11 +82,11 @@ def main(args=None):
     if args.resume:
         file_params.update({"resume": RESUME_FILE_PATH})
     if file_params == {}:
-        raise ValueError("Please specify at least one file type to be included in model.")
+        raise ValueError(
+            "Please specify at least one file type to be included in model."
+        )
 
-    train_corpus, test_corpus = build_corpus(
-        line=args.line, test_ratio=args.test_ratio, **file_params
-    )
+    train_corpus, test_corpus = build_corpus(test_ratio=args.test_ratio, **file_params)
 
     # TODO: Should save training/testing corpus to allow retrain with different parameters
 
