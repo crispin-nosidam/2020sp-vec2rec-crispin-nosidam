@@ -26,16 +26,17 @@ def tokenize(text):
     return [
         stemmer.stem(token.lower())
         for token in nltk.word_tokenize(re.sub("\n", "", text.translate(str.maketrans(punctuation, " "*len(punctuation)))))
-        if (token.isalnum() and token.lower() not in stopwords.words("english"))
+        if (token.isalnum() and token.lower() not in stopwords.words("english") and len(token) > 1)
     ]
 
 
-def pdf_to_dataframe(dir, file_glob="*.pdf"):
+def pdf_to_dataframe(dir, file_glob="*.pdf", type="resume"):
     df = pd.DataFrame(columns=["filename", "tokens", "length"]).astype({"length": "int"})
     for file in glob(os.path.join(dir, file_glob)):
         tokens = tokenize(extract_pdf_text(os.path.join(dir, file)))
         df = df.append(
             {
+                "type": type,
                 "filename": os.path.basename(file),
                 "tokens": tokens,
                 "length": len(tokens),
