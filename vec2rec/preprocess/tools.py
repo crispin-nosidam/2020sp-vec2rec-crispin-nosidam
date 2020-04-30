@@ -3,14 +3,15 @@ import os
 import pandas as pd
 import re
 from glob import glob
-from nltk.corpus import stopwords
 from krovetzstemmer import Stemmer
-from PyPDF2 import PdfFileReader
+from nltk.corpus import stopwords
+from string import punctuation
+from PyPDF4 import PdfFileReader
 
 
 def extract_pdf_text(path, format="string"):
     with open(path, "rb") as fileobj:
-        pfr = PdfFileReader(fileobj)
+        pfr = PdfFileReader(fileobj, strict=False)
         text = "" if format == "string" else []
         for pg in range(pfr.getNumPages()):
             if format == "string":
@@ -24,7 +25,7 @@ def tokenize(text):
     stemmer = Stemmer()
     return [
         stemmer.stem(token.lower())
-        for token in nltk.word_tokenize(re.sub("\n", "", text))
+        for token in nltk.word_tokenize(re.sub("\n", "", text.translate(str.maketrans(punctuation, " "*len(punctuation)))))
         if (token.isalnum() and token.lower() not in stopwords.words("english"))
     ]
 
