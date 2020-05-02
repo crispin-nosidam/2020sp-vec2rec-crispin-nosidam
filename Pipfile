@@ -18,6 +18,9 @@ pandas = "*"
 krovetzstemmer = "*"
 xlrd = "*"
 sklearn = "*"
+dask = {extras = ["dataframe"],version = "*"}
+fastparquet = "*"
+s3fs = "*"
 
 [requires]
 python_version = "3.7"
