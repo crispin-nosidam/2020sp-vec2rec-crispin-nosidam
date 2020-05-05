@@ -1,15 +1,18 @@
+import boto3
 import nltk
 import os
 import posixpath
 import pandas as pd
 import re
+import s3fs
 import unicodedata
 import dask.dataframe as dd
 import dask.delayed
-from glob import glob
+from glob import glob as os_glob
 from krovetzstemmer import Stemmer
 from nltk.corpus import stopwords
 from string import punctuation
+from urllib.parse import urlparse
 from PyPDF4 import PdfFileReader
 
 
@@ -53,7 +56,7 @@ class PDFReader:
 
     @staticmethod
     def extract_pdf_text(path, fmt="string"):
-        with open(path, "rb") as fileobj:
+        def extract(fileobj):
             pfr = PdfFileReader(fileobj, strict=False)
             text = "" if fmt == "string" else []
             for pg in range(pfr.getNumPages()):
@@ -62,6 +65,14 @@ class PDFReader:
                 else:
                     text.append(pfr.getPage(pg).extractText())
             return text
+        if path.startswith("s3://"):
+            s3 = s3fs.S3FileSystem(anon=False)
+            up = urlparse(path)
+            with s3.open(up.netloc+up.path) as fileobj:
+                return extract(fileobj)
+        else:
+            with open(path, "rb") as fileobj:
+                return extract(fileobj)
 
 
 class TokenData:
@@ -91,18 +102,37 @@ class TokenData:
 
     tokenize = staticmethod(dask.delayed(Tokenizer()))
 
+    @staticmethod
+    def s3_glob(url):
+        up = urlparse(url)
+        bucket_name = up.netloc
+        prefix, suffix = posixpath.split(up.path[1:])
+        suffix = posixpath.splitext(suffix)[1]
+        s3_client = boto3.client("s3")
+        objs = s3_client.list_objects_v2(Bucket=bucket_name)["Contents"]
+        return [
+            "s3://" + bucket_name + "/" + obj["Key"]
+            for obj in objs
+            if obj["Key"].startswith(prefix) and obj["Key"].endswith(suffix)
+        ]
+
     def pdf_to_df(self, parent_dir, file_glob="*.pdf", df_type="resume"):
         df = pd.DataFrame(columns=self.df_schema).astype({"length": "int"})
         df = dd.from_pandas(df, chunksize=self.chunk_size)
-        for file in glob(os.path.join(parent_dir, file_glob)):
-            tokens = self.tokenize(
-                self.extract_pdf_text(os.path.join(parent_dir, file))
-            )
+        join = posixpath.join if parent_dir.startswith("s3://") else os.path.join
+        basename = (
+            posixpath.basename if parent_dir.startswith("s3://") else os.path.basename
+        )
+        glob = self.s3_glob if parent_dir.startswith("s3://") else os_glob
+        print(glob(join(parent_dir, file_glob)))
+        for file in glob(join(parent_dir, file_glob)):
+            #tokens = self.tokenize(self.extract_pdf_text(join(parent_dir, file)))
+            tokens = self.tokenize(self.extract_pdf_text(file))
             df_part = pd.DataFrame(
                 {
                     "doc_type": df_type,
                     "filename": file,
-                    "ID": os.path.basename(file),
+                    "ID": basename(file),
                     "tokens": [
                         tokens.compute()
                     ],  # dask.dataframe somehow interfere with nltk
@@ -118,15 +148,19 @@ class TokenData:
     def xls_to_df(self, parent_dir, file_glob="*.xlsx", df_type="train"):
         df = pd.DataFrame(columns=self.df_schema).astype({"length": "int"})
         df = dd.from_pandas(df, chunksize=self.chunk_size)
-        for file in glob(os.path.join(parent_dir, file_glob)):
-            df_part = dd.from_delayed(dask.delayed(pd.read_excel)(os.path.join(file)))
+        join = posixpath.join if parent_dir.startswith("s3://") else os.path.join
+        glob = self.s3_glob if parent_dir.startswith("s3://") else os_glob
+        print(glob(join(parent_dir, file_glob)))
+        for file in glob(join(parent_dir, file_glob)):
+            # df_part = dd.from_delayed(dask.delayed(pd.read_excel)(os.path.join(file)))
+            df_part = dd.from_delayed(dask.delayed(pd.read_excel)(file))
             df_part["Description"] = df_part["Description"].apply(
                 lambda text: unicodedata.normalize("NFKD", text)
                 .encode("ASCII", "ignore")
                 .decode("utf-8"),
                 meta="str",
             )
-            df_part["doc_type"] = "train"
+            df_part["doc_type"] = df_type
             df_part["filename"] = file
             df_part["tokens"] = df_part["Description"].apply(
                 TokenData.tokenize, meta="list"
@@ -151,18 +185,17 @@ class TokenData:
             return
         raise ValueError(f"df_type has an invalid value of {df_type}")
 
-    @classmethod
-    def read_parquet(cls, parent_dir, file_path=default_fp, df_type="all"):
+    def read_parquet(self, parent_dir, file_path=default_fp, df_type="all"):
         join = posixpath.join if parent_dir.startswith("s3://") else os.path.join
         if df_type in ["all", "resume"]:
-            cls.res_df = dd.read_parquet(join(parent_dir, file_path["resume"]))
+            self.res_df = dd.read_parquet(join(parent_dir, file_path["resume"]))
         if df_type in ["all", "job"]:
-            cls.job_df = dd.read_parquet(join(parent_dir, file_path["job"]))
+            self.job_df = dd.read_parquet(join(parent_dir, file_path["job"]))
         if df_type in ["all", "train"]:
-            cls.train_df = dd.read_parquet(join(parent_dir, file_path["train"]))
+            self.train_df = dd.read_parquet(join(parent_dir, file_path["train"]))
 
     def to_parquet(self, parent_dir, file_path=default_fp, df_type="all"):
-        join = posixpath.join if parent_dir.startwith("s3://") else os.path.join
+        join = posixpath.join if parent_dir.startswith("s3://") else os.path.join
         if df_type in ["all", "resume"]:
             # encountered bugs here
             # self.res_df.to_parquet(os.path.join(parent_dir, file_path["resume"]), compute=True)
