@@ -11,10 +11,10 @@ S3_BUCKET_BASE = "s3://csci-e29-kwc271/project"
 # TODO: Implement Factory?
 class Vec2Rec:
     job_model = D2VModel()
-    res_model = D2VModel()
+    resume_model = D2VModel()
     train_model = D2VModel()
-    all_model = D2VModel()
 
+    # TODO: Test this
     @staticmethod
     def add_doc(parent_dir, file_name, type="resume"):
         ext = posixpath.splitext(file_name)[1][0:4]
@@ -35,6 +35,7 @@ class Vec2Rec:
             posixpath.join(S3_BUCKET_BASE, type, file_name),
         )
 
+    # TODO: Test this
     @staticmethod
     def del_doc(file_name, type="resume"):
         s3 = s3fs.S3FileSystem(anon=False)
