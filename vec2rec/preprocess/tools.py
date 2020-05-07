@@ -10,11 +10,16 @@ import dask.dataframe as dd
 import dask.delayed
 from glob import glob as os_glob
 from krovetzstemmer import Stemmer
+from logging import getLogger, StreamHandler
 from nltk.corpus import stopwords
 from string import punctuation
 from urllib.parse import urlparse
 from PyPDF4 import PdfFileReader
 
+logger = getLogger(__name__)
+logger.addHandler(StreamHandler())
+if "LOGGING" in os.environ:
+    logger.setLevel(os.environ["LOGGING"])
 
 class Tokenizer:
     def __get__(self, instance, owner):
@@ -124,7 +129,9 @@ class TokenData:
             posixpath.basename if parent_dir.startswith("s3://") else os.path.basename
         )
         glob = self.s3_glob if parent_dir.startswith("s3://") else os_glob
-        print(glob(join(parent_dir, file_glob)))
+        logger.debug("__________ In pdf_to_df __________")
+        logger.debug(join(parent_dir, file_glob))
+        logger.debug(glob(join(parent_dir, file_glob)))
         for file in glob(join(parent_dir, file_glob)):
             #tokens = self.tokenize(self.extract_pdf_text(join(parent_dir, file)))
             tokens = self.tokenize(self.extract_pdf_text(file))

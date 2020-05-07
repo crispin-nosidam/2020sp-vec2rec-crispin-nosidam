@@ -154,131 +154,165 @@ psr_del.add_argument(
 
 def main(args=None):
     args = parser.parse_args(args=args)
-    print(args)
-    exit()
-    if args.cmd is "preprocess":
-        to_do = ["resume", "job", "train"] if args.type is "all" else [args.type]
-        join = (
-            posixpath.join if args.parent_dir.startswith("s3 = s3://") else os.path.join
-        )
+    logger.debug(args)
+    # exit()
+    to_do = ["resume", "job", "train"] if args.type == "all" else [args.type]
+    join = posixpath.join if args.parent_dir.startswith("s3://") else os.path.join
+    if not args.parent_dir.startswith("s3://"):
+        args.parent_dir = os.path.abspath(args.parent_dir)
+    if args.cmd == "preprocess":
+        logger.debug("__________ in preprocess __________")
         td = TokenData()
         for doc_type in to_do:
+            logger.debug(f"doc_type = {doc_type}")
             # REPO_BASE/<doc_type>/
             raw_doc_dir = join(args.parent_dir, doc_type)
+            logger.debug(f"raw_doc_dir = {raw_doc_dir}")
 
             if doc_type in ["job", "train"]:
                 td.xls_to_df(raw_doc_dir, df_type=doc_type)
-            if doc_type is "resume":
+            if doc_type == "resume":
                 td.pdf_to_df(raw_doc_dir, df_type=doc_type)
 
-            # REPO_BASE/parquet/<doc_type>/
-            parquet_dir = join(args.parent_dir, "parquet", doc_type)
+            # REPO_BASE/parquet/
+            parquet_dir = join(args.parent_dir, "parquet")
+            logger.debug(f"parquet_dir = {parquet_dir}")
             td.to_parquet(parquet_dir, df_type=doc_type)
 
             if args.local:
-                # LOCAL_BASE/parquet/<doc_type>/<doc_type>.parquet
-                td.to_parquet(
-                    os.path.join(args.local_dir, "parquet", doc_type), df_type=doc_type
-                )
+                # LOCAL_BASE/parquet/<doc_type>.parquet
+                args.local_dir = os.path.abspath(args.local_dir)
+                local_parquet_dir = os.path.join(args.local_dir, "parquet")
+                if not os.path.exists(local_parquet_dir):
+                    os.makedirs(local_parquet_dir)
+                logger.debug(local_parquet_dir)
+                td.to_parquet(local_parquet_dir, df_type=doc_type)
 
-    if args.cmd is "train":
-        to_do = ["resume", "job", "train"] if args.type is "all" else [args.type]
-        join = (
-            posixpath.join if args.parent_dir.startswith("s3 = s3://") else os.path.join
-        )
+    if args.cmd == "train":
         for doc_type in to_do:
+            logger.debug("__________ in train __________")
+            logger.debug(f"doc_type = {doc_type}")
+            logger.debug(Vec2Rec.__dict__[doc_type + "_model"].model)
             Vec2Rec.__dict__[doc_type + "_model"].model = Doc2Vec(
                 vector_size=args.vector_size, min_count=args.min_cnt, epochs=args.epochs
             )
-            # REPO_BASE/parquet/<doc_type>/
-            parquet_dir = join(args.parent_dir, "parquet", doc_type)
-            # REPO_BASE/parquet/<doc_type>/<doc_type>.parquet
-            Vec2Rec.__dict__[doc_type + "_model"].model.build_corpus(
+            # REPO_BASE/parquet/
+            parquet_dir = join(args.parent_dir, "parquet")
+            logger.debug(f"parquet_dir = {parquet_dir}")
+            # REPO_BASE/parquet/<doc_type>.parquet
+            Vec2Rec.__dict__[doc_type + "_model"].build_corpus(
                 parquet_dir, doc_type + ".parquet"
             )
-            Vec2Rec.__dict__[doc_type + "_model"].model.train()
+            Vec2Rec.__dict__[doc_type + "_model"].train()
+            logger.debug(f'trained = {Vec2Rec.__dict__[doc_type + "_model"].trained}')
 
-            # REPO_BASE/models/<doc_type>/
-            model_dir = join(args.parent_dir, "models", doc_type)
-            # REPO_BASE/models/<doc_type>/<doc_type>_model
-            Vec2Rec.__dict__[doc_type + "_model"].model.save_model(
+            # REPO_BASE/models/
+            model_dir = join(args.parent_dir, "models")
+            logger.debug(f"model_dir = {model_dir}")
+            # REPO_BASE/models/<doc_type>_model
+            Vec2Rec.__dict__[doc_type + "_model"].save_model(
                 model_dir, doc_type + "_model"
             )
-            # REPO_BASE/parquet/<doc_type>/<doc_type>_train.parquet
+            # REPO_BASE/parquet/<doc_type>_train.parquet
             Vec2Rec.__dict__[doc_type + "_model"].df_train.to_parquet(
-                join(parquet_dir, doc_type + "_train.parquet")
+                join(parquet_dir, doc_type + "_train.parquet"), compression="gzip"
             )
-            # REPO_BASE/parquet/<doc_type>/<doc_type>_test.parquet
+            # REPO_BASE/parquet/<doc_type>_test.parquet
             Vec2Rec.__dict__[doc_type + "_model"].df_test.to_parquet(
-                join(parquet_dir, doc_type + "_test.parquet")
+                join(parquet_dir, doc_type + "_test.parquet"), compression="gzip"
             )
             if args.local:
-                join = os.path.join
-                # LOCAL_BASE/models/<doc_type>/<doc_type>_model
-                Vec2Rec.__dict__[doc_type + "_model"].model.save_model(
-                    join(args.local_dir, "models", doc_type), doc_type + "_model",
+                args.local_dir = os.path.abspath(args.local_dir)
+                local_model_dir = os.path.join(args.local_dir, "models")
+                # LOCAL_BASE/models/<doc_type>_model
+                logger.debug(f"local_model_dir = {local_model_dir}")
+                if not os.path.exists(local_model_dir):
+                    os.makedirs(local_model_dir)
+                Vec2Rec.__dict__[doc_type + "_model"].save_model(
+                    local_model_dir, doc_type + "_model",
                 )
-                # LOCAL_BASE/parquet/<doc_type>/<doc_type>_train.parquet
+                # LOCAL_BASE/parquet/<doc_type>_train.parquet
+                logger.debug(
+                    f'local_parquet_dir = {os.path.join(args.local_dir, "parquet")}'
+                )
                 Vec2Rec.__dict__[doc_type + "_model"].df_train.to_parquet(
-                    join(parquet_dir, "parquet", doc_type, doc_type + "_train.parquet")
+                    os.path.join(
+                        args.local_dir, "parquet", doc_type + "_train.parquet"
+                    ),
+                    compression="gzip",
                 )
-                # LOCAL_BASE/parquet/<doc_type>/<doc_type>_test.parquet
+                # LOCAL_BASE/parquet/<doc_type>_test.parquet
                 Vec2Rec.__dict__[doc_type + "_model"].df_test.to_parquet(
-                    join(parquet_dir, "parquet", doc_type, doc_type + "_test.parquet")
+                    os.path.join(args.local_dir, "parquet", doc_type + "_test.parquet"),
+                    compression="gzip",
                 )
 
-    if args.cmd is "test":
-        to_do = ["resume", "job", "train"] if args.type is "all" else [args.type]
-        join = (
-            posixpath.join if args.parent_dir.startswith("s3 = s3://") else os.path.join
-        )
+    if args.cmd == "test":
         for doc_type in to_do:
-            # REPO_BASE/models/<doc_type>/
-            model_dir = join(args.parent_dir, "models", doc_type)
-            # REPO_BASE/models/<doc_type>/<doc_type>_model
-            Vec2Rec.__dict__[doc_type + "_model"].model.load_model(
+            print(f"---------- For Doc Type {doc_type} ----------")
+            logger.debug("__________ in test __________")
+            logger.debug(f"doc_type = {doc_type}")
+            # REPO_BASE/models/
+            model_dir = join(args.parent_dir, "models")
+            logger.debug(f"model_dir = {model_dir}")
+            # REPO_BASE/models/<doc_type>_model
+            Vec2Rec.__dict__[doc_type + "_model"].load_model(
                 model_dir, doc_type + "_model"
             )
-            # REPO_BASE/parquet/<doc_type>/
-            parquet_dir = join(args.parent_dir, "parquet", doc_type)
-            # REPO_BASE/parquet/<doc_type>/<doc_type>_train.parquet
-            Vec2Rec.__dict__[
-                doc_type + "_model"
-            ].model.train_corpus = D2VModel.read_corpus(
-                pd.read_parquet(join(parquet_dir, doc_type + "_train.parquet"))
+            # REPO_BASE/parquet/
+            parquet_dir = join(args.parent_dir, "parquet")
+            logger.debug(f"parquet_dir = {parquet_dir}")
+            # REPO_BASE/parquet/<doc_type>_train.parquet
+            Vec2Rec.__dict__[doc_type + "_model"].train_corpus = list(
+                D2VModel.read_corpus(
+                    pd.read_parquet(join(parquet_dir, doc_type + "_train.parquet"))
+                )
             )
-            Vec2Rec.__dict__[
-                doc_type + "_model"
-            ].model.test_corpus = D2VModel.read_corpus(
-                pd.read_parquet(join(parquet_dir, doc_type + "_test.parquet"))
+            Vec2Rec.__dict__[doc_type + "_model"].test_corpus = list(
+                D2VModel.read_corpus(
+                    pd.read_parquet(join(parquet_dir, doc_type + "_test.parquet")),
+                    token_only=True,
+                )
             )
-            Vec2Rec.__dict__[doc_type + "_model"].model.test(args.sample, args.top_n)
+            Vec2Rec.__dict__[doc_type + "_model"].test(args.sample, args.top_n)
 
-    if args.cmd is "lookup":
-        join = (
-            posixpath.join if args.parent_dir.startswith("s3 = s3://") else os.path.join
-        )
-        # REPO_BASE/models/<doc_type>/
-        model_dir = join(args.parent_dir, "models", args.type)
-        # REPO_BASE/models/<doc_type>/<doc_type>_model
-        Vec2Rec.__dict__[args.type + "_model"].model.load_model(
+    if args.cmd == "lookup":
+        # REPO_BASE/models/
+        model_dir = join(args.parent_dir, "models")
+        # REPO_BASE/models/<doc_type>_model
+        Vec2Rec.__dict__[args.type + "_model"].load_model(
             model_dir, args.type + "_model"
         )
-        if args.string is not None:
-            print(
-                Vec2Rec.__dict__[args.type + "_model"].model.lookup(
-                    text=args.string, top_n=args.top_n
-                )
-            )
-        if args.fileis is not None:
-            print(
-                Vec2Rec.__dict__[args.type + "_model"].model.lookup(
-                    filepath=args.files, top_n=args.top_n
-                )
-            )
+        # REPO_BASE/parquet/
+        parquet_dir = join(args.parent_dir, "parquet")
+        logger.debug(f"parquet_dir = {parquet_dir}")
+        # REPO_BASE/parquet/<doc_type>_train.parquet
+        Vec2Rec.__dict__[args.type + "_model"].df_train = pd.read_parquet(
+            join(parquet_dir, args.type + "_train.parquet")
+        )
 
-    if args.cmd is "add_doc":
+        if args.string is not None:
+            param = {"text": args.string}
+        if args.files is not None:
+            param = {"filepath": args.files}
+        n = 0
+        for sim, metadata in (
+            Vec2Rec.__dict__[args.type + "_model"]
+            .lookup(top_n=args.top_n, **param)
+            .items()
+        ):
+            print(f"---------- Top {n+1} similarity ----------")
+            print(f"Similarity: {sim}")
+            for key, value in metadata.items():
+                if key != "tokens":
+                    print(f"{key} = {value}")
+                else:
+                    print(f"{key} = {' '.join(value)}")
+
+            n += 1
+
+    if args.cmd == "add_doc":
         Vec2Rec.add_doc(args.parent_dir, args.filename, args.type)
 
-    if args.cmd is "del_doc":
+    if args.cmd == "del_doc":
         Vec2Rec.del_doc(args.filename, args.type)

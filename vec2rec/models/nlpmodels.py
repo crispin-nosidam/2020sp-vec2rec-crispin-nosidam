@@ -66,6 +66,8 @@ class D2VModel(NLPModel):
     def build_corpus(self, parent_dir, file_path, test_ratio=1 / 3):
         # Load from Parquet files with all preprocessed data
         join = posixpath.join if parent_dir.startswith("s3://") else os.path.join
+        if not parent_dir.startswith("s3://"):
+            parent_dir = os.path.abspath(parent_dir)
         df = pd.read_parquet(join(parent_dir, file_path))
 
         self.df_train, self.df_test = train_test_split(
@@ -80,7 +82,8 @@ class D2VModel(NLPModel):
         if epochs is None:
             epochs = self.model.epochs
 
-        self.model.build_vocab(self.train_corpus)
+        if not self.trained:
+            self.model.build_vocab(self.train_corpus)
         self.model.train(
             self.train_corpus, total_examples=self.model.corpus_count, epochs=epochs
         )
@@ -106,32 +109,36 @@ class D2VModel(NLPModel):
             )
 
         print(f"\n---------- Similarity with Testing Corpus ----------")
-        doc_id = random.randint(0, len(self.test_corpus) - 1)
-        inferred_vector = self.model.infer_vector(self.test_corpus[doc_id])
-        sims = self.model.docvecs.most_similar(
-            [inferred_vector], topn=len(self.model.docvecs)
-        )
-
-        # Compare and print the most/median/least similar documents from the models corpus
-        print(
-            "Test Document ({}): «{}»\n".format(
-                doc_id, " ".join(self.test_corpus[doc_id])
+        for idx in range(sample):
+            print(f"\n---------- Sample {idx+1} ----------")
+            doc_id = random.randint(0, len(self.test_corpus) - 1)
+            inferred_vector = self.model.infer_vector(self.test_corpus[doc_id])
+            sims = self.model.docvecs.most_similar(
+                [inferred_vector], topn=len(self.model.docvecs)
             )
-        )
-        print("SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n" % self.model)
-        for label, index in [
-            ("MOST", 0),
-            ("MEDIAN", len(sims) // 2),
-            ("LEAST", len(sims) - 1),
-        ]:
+
+            # Compare and print the most/median/least similar documents from the models corpus
             print(
-                "%s %s: «%s»\n"
-                % (
-                    label,
-                    sims[index],
-                    " ".join(self.train_corpus[sims[index][0]].words),
+                "Test Document ({}): «{}»\n".format(
+                    doc_id, " ".join(self.test_corpus[doc_id])
                 )
             )
+            print("SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n" % self.model)
+            labels = [("MOST", 0)] + [(f"# {i+1}", i+1) for i in range(top_n-1)]+ [("MEDIAN", len(sims) // 2), ("LEAST", len(sims) - 1)]
+            for label, index in labels:
+                """[
+                ("MOST", 0),
+                ("MEDIAN", len(sims) // 2),
+                ("LEAST", len(sims) - 1),
+            ]:"""
+                print(
+                    "%s %s: «%s»\n"
+                    % (
+                        label,
+                        sims[index],
+                        " ".join(self.train_corpus[sims[index][0]].words),
+                    )
+                )
 
     # from files load to self.corpus
     def load_model(self, parent_dir, file_name="model"):
@@ -145,6 +152,7 @@ class D2VModel(NLPModel):
                 self.model = Doc2Vec.load(os.path.join(temp_dir, file_name))
         else:
             self.model.save(os.path.join(parent_dir, file_name))
+        self.trained = True
 
     def save_model(self, parent_dir, file_name):
         if parent_dir.startswith("s3://"):
