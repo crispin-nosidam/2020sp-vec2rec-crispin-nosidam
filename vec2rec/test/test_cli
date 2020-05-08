@@ -1,0 +1,20 @@
+python -W ignore -m vec2rec preprocess
+python -W ignore -m vec2rec preprocess -l -ld "vec2rec/data"
+# python -W ignore -m vec2rec -p "vec2rec/data" preprocess -l -ld "vec2rec/data"
+python -W ignore -m vec2rec preprocess -l -ld "vec2rec/data"
+Namespace(chunk=20, cmd='preprocess', local=False, local_dir='/tmp/data', parent_dir='s3://csci-e29-kwc271/project', type='all')
+
+python -W ignore -m vec2rec train
+python -W ignore -m vec2rec train -l -ld "vec2rec/data"
+Namespace(cmd='train', epochs=100, local=False, local_dir='/tmp/data', min_cnt=2, parent_dir='s3://csci-e29-kwc271/project', test_ratio=0.3333333333333333, type='all', vector_size=75)
+
+python -W ignore -m vec2rec test
+python -W ignore -m vec2rec test -s 2
+python -W ignore -m vec2rec test -s 2 -n 1
+
+python -W ignore -m vec2rec lookup -s "computer engineer" -t "job"
+python -W ignore -m vec2rec lookup -s "computer engineer" -t "job" -n 1
+python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\1Amy.pdf" "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\2Ben.pdf" -t "job"
+
+python -W ignore -m vec2rec del_doc -t "resume" -f "2Ben.pdf"
+python -W ignore -m vec2rec -p "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume" add_doc -t "resume" -f "2Ben.pdf"

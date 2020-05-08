@@ -10,6 +10,17 @@ coverage = "<=4.5.4"
 
 [packages]
 setuptools-scm = "*"
+nltk = "*"
+kfp = "*"
+gensim = "*"
+pyPDF4 = "*"
+pandas = "*"
+krovetzstemmer = "*"
+xlrd = "*"
+sklearn = "*"
+dask = {extras = ["dataframe"],version = "*"}
+fastparquet = "*"
+s3fs = "*"
 
 [requires]
 python_version = "3.7"
