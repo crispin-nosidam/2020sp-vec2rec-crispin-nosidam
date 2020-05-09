@@ -235,6 +235,8 @@ def main(args=None):
                 logger.debug(
                     f'local_parquet_dir = {os.path.join(args.local_dir, "parquet")}'
                 )
+                if not os.path.exists(local_parquet_dir):
+                    os.makedirs(local_parquet_dir)
                 Vec2Rec.__dict__[doc_type + "_model"].df_train.to_parquet(
                     os.path.join(
                         args.local_dir, "parquet", doc_type + "_train.parquet"
