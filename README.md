@@ -34,5 +34,262 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
   * Increment of a candidate’s suitability for a job after a training
 
 ##Architecture
-![alt text](https://github.com/crispin-nosidam/2020sp-vec2rec-crispin-nosidam/tree/master/vec2rec/images/arch_diag.png "Vec2Rec Architecture Diagram")
+![alt text](https://github.com/crispin-nosidam/2020sp-vec2rec-crispin-nosidam/tree/develop/vec2rec/images/arch_diag.png "Vec2Rec Architecture Diagram")
 
+##Component
+###Batch processing – to produce Gensim Doc2Vec models for similarity lookups
+* There are 4 types of artifacts, raw data, preprocessed generic data, Gensim Doc2vec formatted training and testing data, and trained model(s). All of these are stored on S3.
+* The Kubeflow Pipeline enables modularization and reruns. Each stage is a docker which can be replaced, even with non-python dockers as long as it produces results with correct format
+
+####Kubeflow Pipeline Phases
+The following are all dockers images uploaded to DockerHub. The job definitions are written in Python which are compiled with the Kubeflow domain specific compiler (DSL) into a yaml file, which can be uploaded into the Kubeflow cluster for job definition. Each step can either pass “small” variables, usually int, str, float, bool. For larger data will have to serialize and Kubeflow will help to copy to the correct path location to be retrieved by the next phase. 
+* **Generic preprocessing phase** converts raw data, such as Excel and PDF into Pandas Dataframe, which is computed with Dask Dataframe / Dask Delayed, stored as Parquet
+  * File format converter is implemented as descriptor to be easily replaceable
+  * Preprocessing includes conversion to lower case, UTF-8 charset, removal of NLTK stopwords and punctuations, and the use of Krovetz Stemmer, which seems to have better conversion results than some others like the NLTK stemming or lemmatization; dropping of short and infrequent words
+  * Preprocessing is implemented as a descriptor to be easily replaceable
+* **Gensim Doc2vec preprocessing phase** split training/testing set in dataframes on Parquet and convert into Gensim Doc2Vec Training and Testing Corpus
+  * Specifically detached from the generic phase to allow Doc2vec engine to be replaced
+  * Final point where incremental updates are possible as Doc2vec models are not.
+  * Currently merged w/ training phase as corpus serialization is not implemented.
+* **Gensim Doc2vec training phase** builds the doc2vec model from training corpus
+  * Currently, incremental update is not supported by Doc2Vec the model needs to be retrained whenever there are additions/removal to corpus
+  * 4 models are built
+    * Models from each data type – resumes, job desc, train desc
+      * Better retrain performance
+    * Model with all data meshed together
+      * Larger sample size, more complete vocabulary
+* **Gensim Doc2vec testing phase** uses the both the training data and testing data to evaluate the model performance. This phase is not exposed to the user.
+  * Training data: should have best similarity to itself
+  * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
+ 
+###Front end – for Similarity Queries
+* Includes
+  * CLI Python Module with argparse
+  * Flask API (Future improvements)
+
+####Functions of CLI:
+#####Top Level Options
+```text
+usage: vec2rec [-h] [-p PARENT_DIR]
+               {preprocess,train,test,lookup,add_doc,del_doc} ...
+
+Vec2Rec - Similarity matching among resumes, jobs and training descriptions.
+
+positional arguments:
+  {preprocess,train,test,lookup,add_doc,del_doc}
+    preprocess          Preprocess PDF and Excel for NLP model Training
+    train               Train NLP Models
+    test                Run tests on NLP Models
+    lookup              Lookup models for similar documents
+    add_doc             Add new document to doc repo
+    del_doc             Delete document from doc repo
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PARENT_DIR, --parent_dir PARENT_DIR
+                        Parent dir for repo / file to be processed
+```
+#####Sub command options
+```text
+
+usage: vec2rec preprocess [-h] [-c CHUNK] [-t {resume,job,train,all}] [-l]
+                          [-ld LOCAL_DIR]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CHUNK, --chunk CHUNK
+                        Chunksize for Dask processing
+  -t {resume,job,train,all}, --type {resume,job,train,all}
+                        Doctype for action
+  -l, --local           Store a copy in local dir
+  -ld LOCAL_DIR, --local_dir LOCAL_DIR
+                        Local dir path
+
+usage: vec2rec train [-h] [-s VECTOR_SIZE] [-m MIN_CNT] [-e EPOCHS]
+                     [-tr TEST_RATIO] [-t {resume,job,train,all}] [-l]
+                     [-ld LOCAL_DIR]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s VECTOR_SIZE, --vector_size VECTOR_SIZE
+                        Vector size for doc2vec
+  -m MIN_CNT, --min_cnt MIN_CNT
+                        Min word occurrence included
+  -e EPOCHS, --epochs EPOCHS
+                        # epochs to models
+  -tr TEST_RATIO, --test_ratio TEST_RATIO
+                        percentage of sample used for test case
+  -t {resume,job,train,all}, --type {resume,job,train,all}
+                        Doctype for action
+  -l, --local           Store a copy in local dir
+  -ld LOCAL_DIR, --local_dir LOCAL_DIR
+                        Local dir path
+
+usage: vec2rec test [-h] [-s SAMPLE] [-n TOP_N] [-t {resume,job,train,all}]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SAMPLE, --sample SAMPLE
+                        Sample size from test_corpus used
+  -n TOP_N, --top_n TOP_N
+                        Top N similar docs returned
+  -t {resume,job,train,all}, --type {resume,job,train,all}
+                        Doctype for action
+
+usage: vec2rec add_doc [-h] [-f FILENAME] [-t {resume,job,train}]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FILENAME, --filename FILENAME
+                        Name of file to be added in repo
+  -t {resume,job,train}, --type {resume,job,train}
+                        Doctype for action
+
+usage: vec2rec del_doc [-h] [-f FILENAME] [-t {resume,job,train}]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FILENAME, --filename FILENAME
+                        Name of file to be deleted from repo
+  -t {resume,job,train}, --type {resume,job,train}
+                        Doctype for action
+```
+##Package Structure
+#####vec2rec.preprocess.tools
+```python
+class TokenData: # only highlights are shown here
+    def __init__(self, chunksize=20):
+        ... # set Dask chunksize
+    # descriptors w/ dask.delayed
+    extract_pdf_text = staticmethod(dask.delayed(PDFReader()))
+    tokenize = staticmethod(dask.delayed(Tokenizer())) 
+
+    def pdf_to_df(self, parent_dir, file_glob="*.pdf", df_type="resume"):
+        ... # with Dask, convert pdf to df, add to class var train/test df 
+    def xls_to_df(self, parent_dir, file_glob="*.xlsx", df_type="train"):
+        ... # with Dask, convert xls to df, add to class variable train/test df
+    def read_parquet(self, parent_dir, file_path=default_fp, df_type="all"):
+        ... # read parquet from local/S3 to df and add to class var train/test df
+    def to_parquet(self, parent_dir, file_path=default_fp, df_type="all"):
+        ... # write class variable train/test df to parquet on local/S3
+
+# class PDFReader is a PDF2Text descriptor
+class PDFReader: # only highlights are shown here
+    @staticmethod
+    def extract_pdf_text(path, fmt="string"):
+        ...
+
+# class Tokenizer is a descriptor that perform tokenizing
+# stemming, and various data cleaning tasks from the doc
+class Tokenizer: # only highlights are shown here
+    @staticmethod
+    def tokenize(text):
+        ...         
+
+```
+#####vec2rec.frontend.vec2rec
+```python
+class Vec2Rec: # the class used by the front end
+    # each of these models has a lookup() function which will download the required
+    # model from S3 to perform the similarity check if not already downloaded
+    # These are current Gensim models but can be others, see class NLPModel
+    job_model = D2VModel()
+    res_model = D2VModel()
+    train_model = D2VModel()
+
+    def add_doc(self, parent_dir, file_glob):
+        ... # upload doc to S3 repository
+
+    def del_doc(self, parent_dir, file_glob):
+        ... # delete doc from S3 repository 
+
+```
+#####vec2rec.models.nlpmodels
+```python
+class NLPModel:
+    ... # Abstract class with all functions implemented in D2VModel
+
+class D2VModel(NLPModel):
+    def __init__(self, vector_size=75, min_count=2, epochs=40, test_ratio=0.3):
+        ... # Initialize model in class var
+    def build_corpus(self, parent_dir, file_path):
+        ... # reads in a parquet file from local/S3 and build corpus
+    def train(self, epochs=None):
+        ... # builds vocab and train model in class var
+    def test(self, topn=3):
+        ... # calculate accuracy with training data – doc itself should have
+        # highest similarity. The print out the topn similarity with the testing data
+    def load_model(self, parent_dir, file_path):
+        ... # load saved model from local/S3 & store in class var
+    def save_model(self, parent_dir, filepath):
+        ... # save model into file and upload to local/S3
+    def lookup(self, text, filepath, top_n=3, return_type="text"):
+        ... # lookup with text or filepath local or S3. Filepath can be a list
+        # return_type = “text”: returns a dict with top N {file text: sim score}
+        # return_type = “path”: returns a dict w/top N {S3 URL: similarity score}
+        # lookup_type: data type returned in [“resume”, “job”, “train”]
+        # model: model used for lookup, valid values are [“all”, “single”]  
+
+```
+#####vec2rec.kfp.vec2rec_pipeline
+Functions in this file is used to generate the definition file in yaml.
+Each step returns a dsl.ContainerOp object which will ultimately be a runnable
+docker container in the pipeline.
+
+The decorator @dsl.pipeline is used to define the pipeline where results are
+passed to the next phase. Care must be taken to remember these are not real
+python functions but dockers. All variables passed between the phases needs
+to be small (< 256k), or be serialized into files. It could either be remote
+storage like S3, or passing locally. Using the options file_outputs and
+artifact_argument_path, Kubeflow will help you to copy the files from one
+container to another.
+
+Each phases will need to be built as a docker and uploaded into docker hub
+or GCR and downloaded as the pipeline runs.
+
+This kind of structure forces you to restructure your code and can be very
+cumbersome as all variables are not shared.
+
+Python functions can also be directly converted into container phases without
+uploading containers, tho these are still functions which does not
+```python
+import kfp
+from kfp import dsl
+
+def preprocess_op(parent_dir=S3_BUCKET_BASE, chunk=20, doc_type="all", local_dir=LOCAL_BASE):
+    ...
+    return dsl.ContainerOp(
+        name="preprocess",
+        image=f"crispinnosidam/vec2rec:{img_ver}",
+        command=["pipenv", "run", "python", "-W", "ignore", "-m", "vec2rec",],
+        # ...
+        file_outputs=[ file1, file2, file3 ],
+    )
+
+def train_op( resume_path, job_path, train_path, parent_dir=S3_BUCKET_BASE,
+    vector_size=75, min_cnt=2, epochs=100, test_ratio=1 / 3, doc_type="all", local_dir=LOCAL_BASE, ):
+    ...
+    return dsl.ContainerOp(
+        name="train",
+        image=f"crispinnosidam/vec2rec:{img_ver}",
+        artifact_argument_paths=[
+            dsl.InputArgumentPath(argument=resume_path),
+            dsl.InputArgumentPath(argument=job_path),
+            dsl.InputArgumentPath(argument=train_path),
+        ],
+        command=["pipenv", "run", "python", "-W", "ignore", "-m", "vec2rec",],
+    )
+
+@dsl.pipeline(name="my testing pipeline", description="my testing pipeline description")
+def vec2rec_pipeline(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY):
+    ...
+    pp_op = preprocess_op(S3_BUCKET_BASE)
+    tr_op = train_op(
+        pp_op.outputs["resume"], pp_op.outputs["job"], pp_op.outputs["train"]
+    )
+    ...
+
+if __name__ == "__main__":
+    kfp.compiler.Compiler().compile(vec2rec_pipeline, __file__ + ".yaml")
+
+```
