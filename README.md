@@ -12,7 +12,7 @@
 
 [![Test Coverage](https://api.codeclimate.com/v1/badges/<cc-badge>/test_coverage)](https://codeclimate.com/repos/<cc-repo>/test_coverage)
 
-##Goal
+## Goal
 All of us looked for a job before. We also search training courses to equip ourselves for the job market. Some of us also try to find suitable candidates for their team or try to train up their staff. What challenges do these tasks have in common? With limited time to search, we have:
 1.	An explosive amount of choices
 2.	Choices that are mostly similar to each other
@@ -23,7 +23,7 @@ Similarity, a search with job description for the best candidate, or the relevan
 Vec2rec is a recommendation engine that, with natural language processing, enable us to search with a description, be it a resume, a job description or a training description for most relevant results.
 In addition, we can also run **what-if scenarios**, e.g.: with my current resume, how much closer would it be for me to a dream job if I take this training course? 
 
-##Use Cases
+## Use Cases
 * Job Seekers
   * Find the most suitable jobs
 * Headhunters
@@ -33,15 +33,15 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
   * What jobs a training can enable
   * Increment of a candidate’s suitability for a job after a training
 
-##Architecture
+## Architecture
 ![alt text](https://github.com/crispin-nosidam/2020sp-vec2rec-crispin-nosidam/tree/develop/vec2rec/images/arch_diag.png "Vec2Rec Architecture Diagram")
 
-##Component
-###Batch processing – to produce Gensim Doc2Vec models for similarity lookups
+## Component
+### Batch processing – to produce Gensim Doc2Vec models for similarity lookups
 * There are 4 types of artifacts, raw data, preprocessed generic data, Gensim Doc2vec formatted training and testing data, and trained model(s). All of these are stored on S3.
 * The Kubeflow Pipeline enables modularization and reruns. Each stage is a docker which can be replaced, even with non-python dockers as long as it produces results with correct format
 
-####Kubeflow Pipeline Phases
+#### Kubeflow Pipeline Phases
 The following are all dockers images uploaded to DockerHub. The job definitions are written in Python which are compiled with the Kubeflow domain specific compiler (DSL) into a yaml file, which can be uploaded into the Kubeflow cluster for job definition. Each step can either pass “small” variables, usually int, str, float, bool. For larger data will have to serialize and Kubeflow will help to copy to the correct path location to be retrieved by the next phase. 
 * **Generic preprocessing phase** converts raw data, such as Excel and PDF into Pandas Dataframe, which is computed with Dask Dataframe / Dask Delayed, stored as Parquet
   * File format converter is implemented as descriptor to be easily replaceable
@@ -62,13 +62,13 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * Training data: should have best similarity to itself
   * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
  
-###Front end – for Similarity Queries
+### Front end – for Similarity Queries
 * Includes
   * CLI Python Module with argparse
   * Flask API (Future improvements)
 
-####Functions of CLI:
-#####Top Level Options
+#### Functions of CLI:
+##### Top Level Options
 ```text
 usage: vec2rec [-h] [-p PARENT_DIR]
                {preprocess,train,test,lookup,add_doc,del_doc} ...
@@ -89,7 +89,7 @@ optional arguments:
   -p PARENT_DIR, --parent_dir PARENT_DIR
                         Parent dir for repo / file to be processed
 ```
-#####Sub command options
+##### Sub command options
 ```text
 
 usage: vec2rec preprocess [-h] [-c CHUNK] [-t {resume,job,train,all}] [-l]
@@ -154,8 +154,8 @@ optional arguments:
   -t {resume,job,train}, --type {resume,job,train}
                         Doctype for action
 ```
-##Package Structure
-#####vec2rec.preprocess.tools
+## Package Structure
+##### vec2rec.preprocess.tools
 ```python
 class TokenData: # only highlights are shown here
     def __init__(self, chunksize=20):
@@ -187,7 +187,7 @@ class Tokenizer: # only highlights are shown here
         ...         
 
 ```
-#####vec2rec.frontend.vec2rec
+##### vec2rec.frontend.vec2rec
 ```python
 class Vec2Rec: # the class used by the front end
     # each of these models has a lookup() function which will download the required
@@ -204,7 +204,7 @@ class Vec2Rec: # the class used by the front end
         ... # delete doc from S3 repository 
 
 ```
-#####vec2rec.models.nlpmodels
+##### vec2rec.models.nlpmodels
 ```python
 class NLPModel:
     ... # Abstract class with all functions implemented in D2VModel
@@ -231,7 +231,7 @@ class D2VModel(NLPModel):
         # model: model used for lookup, valid values are [“all”, “single”]  
 
 ```
-#####vec2rec.kfp.vec2rec_pipeline
+##### vec2rec.kfp.vec2rec_pipeline
 Functions in this file is used to generate the definition file in yaml.
 Each step returns a dsl.ContainerOp object which will ultimately be a runnable
 docker container in the pipeline.
