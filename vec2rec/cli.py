@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser(
     description="Vec2Rec - Similarity matching among resumes, jobs and training descriptions.",
 )
 parser.add_argument(
-    "-p", "--parent_dir", default=S3_BUCKET_BASE, help="Parent Dir for repo"
+    "-p", "--parent_dir", default=S3_BUCKET_BASE, help="Parent dir for repo / file to be processed"
 )
 """
 psr_mx = parser.add_mutually_exclusive_group(required=True)
