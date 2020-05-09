@@ -16,6 +16,7 @@ ENV \
 RUN pip install pipenv
 
 WORKDIR /app
+ADD vec2rec /app/vec2rec
 COPY Pipfile .
 COPY Pipfile.lock .
 RUN pipenv install --deploy --ignore-pipfile --dev
