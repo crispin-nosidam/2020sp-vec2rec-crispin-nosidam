@@ -24,7 +24,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
   * Increment of a candidate’s suitability for a job after a training
 
 ## Architecture
-![Architecture Diagram](https://github.com/crispin-nosidam/2020sp-vec2rec-crispin-nosidam/tree/develop/vec2rec/images/arch_diag.png)
+![Architecture Diagram](/vec2rec/images/arch_diag.png)
 
 ## Component
 ### Batch processing – to produce Gensim Doc2Vec models for similarity lookups
