@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser(
     description="Vec2Rec - Similarity matching among resumes, jobs and training descriptions.",
 )
 parser.add_argument(
-    "-p", "--parent_dir", default=S3_BUCKET_BASE, help="Parent Dir for repo"
+    "-p", "--parent_dir", default=S3_BUCKET_BASE, help="Parent dir for repo / file to be processed"
 )
 """
 psr_mx = parser.add_mutually_exclusive_group(required=True)
@@ -209,6 +209,8 @@ def main(args=None):
             # REPO_BASE/models/
             model_dir = join(args.parent_dir, "models")
             logger.debug(f"model_dir = {model_dir}")
+            if ( not model_dir.startswith("s3://")) and (not os.path.exists(model_dir)):
+                os.makedirs(model_dir)
             # REPO_BASE/models/<doc_type>_model
             Vec2Rec.__dict__[doc_type + "_model"].save_model(
                 model_dir, doc_type + "_model"
@@ -231,19 +233,23 @@ def main(args=None):
                 Vec2Rec.__dict__[doc_type + "_model"].save_model(
                     local_model_dir, doc_type + "_model",
                 )
-                # LOCAL_BASE/parquet/<doc_type>_train.parquet
+                # LOCAL_BASE/parquet/
+                local_parquet_dir = os.path.join(args.local_dir, "parquet")
                 logger.debug(
-                    f'local_parquet_dir = {os.path.join(args.local_dir, "parquet")}'
+                    f'local_parquet_dir = {local_parquet_dir}'
                 )
+                if not os.path.exists(local_parquet_dir):
+                    os.makedirs(local_parquet_dir)
+                # LOCAL_BASE/parquet/<doc_type>_train.parquet
                 Vec2Rec.__dict__[doc_type + "_model"].df_train.to_parquet(
                     os.path.join(
-                        args.local_dir, "parquet", doc_type + "_train.parquet"
+                        local_parquet_dir, doc_type + "_train.parquet"
                     ),
                     compression="gzip",
                 )
                 # LOCAL_BASE/parquet/<doc_type>_test.parquet
                 Vec2Rec.__dict__[doc_type + "_model"].df_test.to_parquet(
-                    os.path.join(args.local_dir, "parquet", doc_type + "_test.parquet"),
+                    os.path.join(local_parquet_dir, doc_type + "_test.parquet"),
                     compression="gzip",
                 )
 
@@ -259,21 +265,26 @@ def main(args=None):
             Vec2Rec.__dict__[doc_type + "_model"].load_model(
                 model_dir, doc_type + "_model"
             )
+            logger.debug(f'Vec2Rec.{doc_type}_model.model = {Vec2Rec.__dict__[doc_type + "_model"].model}')
+            logger.debug(f'Vec2Rec.{doc_type}_model.trained = {Vec2Rec.__dict__[doc_type+ "_model"].trained}')
             # REPO_BASE/parquet/
             parquet_dir = join(args.parent_dir, "parquet")
             logger.debug(f"parquet_dir = {parquet_dir}")
+            logger.debug(f'parquet_dir/{doc_type + "_train.parquet"} = {join(parquet_dir, doc_type + "_train.parquet")}')
             # REPO_BASE/parquet/<doc_type>_train.parquet
             Vec2Rec.__dict__[doc_type + "_model"].train_corpus = list(
                 D2VModel.read_corpus(
                     pd.read_parquet(join(parquet_dir, doc_type + "_train.parquet"))
                 )
             )
+            # logger.debug(f"Vec2Rec.resume_model.train_corpus = {Vec2Rec.resume_model.train_corpus}")
             Vec2Rec.__dict__[doc_type + "_model"].test_corpus = list(
                 D2VModel.read_corpus(
                     pd.read_parquet(join(parquet_dir, doc_type + "_test.parquet")),
                     token_only=True,
                 )
             )
+            # logger.debug(f"Vec2Rec.resume_model.test_corpus = {Vec2Rec.resume_model.test_corpus}")
             Vec2Rec.__dict__[doc_type + "_model"].test(args.sample, args.top_n)
 
     if args.cmd == "lookup":

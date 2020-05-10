@@ -17,8 +17,10 @@ RUN pip install pipenv
 
 WORKDIR /app
 ADD vec2rec /app/vec2rec
+COPY .env .
 COPY Pipfile .
 COPY Pipfile.lock .
 RUN pipenv install --deploy --ignore-pipfile --dev
+RUN pipenv run python -m vec2rec.preprocess.load_nltk
 
 ENTRYPOINT ["pipenv", "run"]

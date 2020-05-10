@@ -17,7 +17,6 @@ if "LOGGING" in os.environ:
     logger.setLevel(os.environ["LOGGING"])
 
 
-# TODO: Is it Correct to Change NLPModel to Abstract Class?
 class NLPModel:
     def build_corpus(self, parent_dir, path):
         raise NotImplementedError
@@ -90,13 +89,20 @@ class D2VModel(NLPModel):
         self.trained = True
 
     def test(self, sample=1, top_n=2):
-        # Testing code from https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html#assessing-the-model
+        # Testing code from
+        # https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html#assessing-the-model
         ranks = []
+        # logger.debug(f"len(self.train_corpus) = {len(self.train_corpus)}")
+        # logger.debug(f"len(self.test_corpus) = {len(self.test_corpus)}")
         for doc_id in range(len(self.train_corpus)):
             inferred_vector = self.model.infer_vector(self.train_corpus[doc_id].words)
             sims = self.model.docvecs.most_similar(
                 [inferred_vector], topn=len(self.model.docvecs)
             )
+            # logger.debug(f"[docid for docid, sim in sims] = {[docid for docid, sim in sims]}")
+            # logger.debug(f"doc_id = {doc_id}")
+            # logger.debug(f"[docid for docid, sim in sims].index(doc_id) = {[docid for docid, sim in sims].index(doc_id)}")
+
             rank = [docid for docid, sim in sims].index(doc_id)
             ranks.append(rank)
 
@@ -124,13 +130,12 @@ class D2VModel(NLPModel):
                 )
             )
             print("SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n" % self.model)
-            labels = [("MOST", 0)] + [(f"# {i+1}", i+1) for i in range(top_n-1)]+ [("MEDIAN", len(sims) // 2), ("LEAST", len(sims) - 1)]
+            labels = (
+                [("MOST", 0)]
+                + [(f"# {i+1}", i + 1) for i in range(top_n - 1)]
+                + [("MEDIAN", len(sims) // 2), ("LEAST", len(sims) - 1)]
+            )
             for label, index in labels:
-                """[
-                ("MOST", 0),
-                ("MEDIAN", len(sims) // 2),
-                ("LEAST", len(sims) - 1),
-            ]:"""
                 print(
                     "%s %s: «%s»\n"
                     % (
@@ -151,7 +156,7 @@ class D2VModel(NLPModel):
                 )
                 self.model = Doc2Vec.load(os.path.join(temp_dir, file_name))
         else:
-            self.model.save(os.path.join(parent_dir, file_name))
+            self.model = Doc2Vec.load(os.path.join(parent_dir, file_name))
         self.trained = True
 
     def save_model(self, parent_dir, file_name):
