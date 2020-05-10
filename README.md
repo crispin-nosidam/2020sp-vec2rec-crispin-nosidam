@@ -8,6 +8,7 @@ All of us looked for a job before. We also search training courses to equip ours
 2.	Choices that are mostly similar to each other
 3.	Data, while somewhat categorized, the differentiators are in words, i.e.: natural languages
 4.	Different preferences with different background – the best paid Java programmer position may be easy to search, but are you up to it?
+
 A description of yourself, i.e.: a resume, is ultimately what gets you into an interview, after the broad-stroke categorizations like “Java programmer”. Keyword search engines like google are common, but what if you can search with your resume?
 Similarity, a search with job description for the best candidate, or the relevancy of a training to a job we want would be nice.
 Vec2rec is a recommendation engine that, with natural language processing, enable us to search with a description, be it a resume, a job description or a training description for most relevant results.
