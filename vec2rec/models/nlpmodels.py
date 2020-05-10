@@ -17,7 +17,6 @@ if "LOGGING" in os.environ:
     logger.setLevel(os.environ["LOGGING"])
 
 
-# TODO: Is it Correct to Change NLPModel to Abstract Class?
 class NLPModel:
     def build_corpus(self, parent_dir, path):
         raise NotImplementedError
@@ -151,7 +150,7 @@ class D2VModel(NLPModel):
                 )
                 self.model = Doc2Vec.load(os.path.join(temp_dir, file_name))
         else:
-            self.model.save(os.path.join(parent_dir, file_name))
+            self.model = Doc2Vec.load(os.path.join(parent_dir, file_name))
         self.trained = True
 
     def save_model(self, parent_dir, file_name):
