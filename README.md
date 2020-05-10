@@ -26,6 +26,42 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
 ## Architecture
 ![Architecture Diagram](/vec2rec/images/arch_diag.png)
 
+# Technology Stack
+* Gensim Doc2vec
+* Python – Descriptors, Iterators
+* Kubflow Pipeline and Docker
+* Dask Dataframe, Dask Delay, Pandas and Parquet
+* Natural Language toolkit (NLTK) and Krovetz Stemmer, PyPDF4
+* S3
+* Argparse (Future: Flask)
+
+# Design Choices & Implementation Considerations
+## 1) Preserve computation steps to allow easy reruns under different config / data updates
+* Kubeflow pipeline allows easy reruns for each step.
+* The serialization of the 3 generated artifact types minimize the number of reruns needed
+  * For activities such as
+    * Addition/Remove of data
+    * Retrain with different parameters
+    * Restarts
+  * Features
+    * Generic processed data can be updated incrementally
+    * Doc2Vec formatted data cannot be updated incrementally but left provision for future enhancement for serialization method such as pickle
+    * Segregated model avoid total retrain for doc types on changes
+    * Saved Models avoid total recalculation of models over restarts
+## 2) Modularize components and enable future enhancement / replacement
+* Docker phases in Kubeflow allow replacement for whole phases
+* Usage of Descriptor in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
+## 3) Enhance parallelization on computation and Memory Efficiency
+* Use of Dask Dataframe and Dask Delayed increases parallelization
+* Some attempts are made to reduce memory footprint during preprocessing by using iterators, but Doc2vec requires whole corpus to be in memory during training
+* Temporary training data in Doc2vec model is deleted after training to reduce memory full print for lookup engine
+## 4) Allow incremental growth to lookup database
+* Interface is added to modify raw data of lookup database
+* Allow Incremental updates up to generic preprocessed data
+* Gensim Doc2vec does not allow incremental update of models
+## 5) Centralized Repository
+* S3 being the most easily implemented repository for document-type raw data
+* Database may have better performance as interim data storage, but still cannot store saved models
 ## Component
 ### Batch processing – to produce Gensim Doc2Vec models for similarity lookups
 * There are 4 types of artifacts, raw data, preprocessed generic data, Gensim Doc2vec formatted training and testing data, and trained model(s). All of these are stored on S3.
@@ -46,7 +82,7 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * 4 models are built
     * Models from each data type – resumes, job desc, train desc
       * Better retrain performance
-    * Model with all data meshed together
+    * Model with all data meshed together (Future Enhancement)
       * Larger sample size, more complete vocabulary
 * **Gensim Doc2vec testing phase** uses the both the training data and testing data to evaluate the model performance. This phase is not exposed to the user.
   * Training data: should have best similarity to itself
@@ -55,7 +91,7 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
 ### Front end – for Similarity Queries
 * Includes
   * CLI Python Module with argparse
-  * Flask API (Future improvements)
+  * Flask API (Future Enhancement)
 
 #### Functions of CLI:
 ##### Top Level Options
@@ -146,6 +182,9 @@ optional arguments:
 ```
 ## Package Structure
 ##### vec2rec.preprocess.tools
+* class TokenData - Preprocess raw data and store
+* class Tokenizer - Descriptor of a tokenizer for data cleaning and tokenization
+* class PDFReader - Descriptor of a PDFReader
 ```python
 class TokenData: # only highlights are shown here
     def __init__(self, chunksize=20):
@@ -177,24 +216,9 @@ class Tokenizer: # only highlights are shown here
         ...         
 
 ```
-##### vec2rec.frontend.vec2rec
-```python
-class Vec2Rec: # the class used by the front end
-    # each of these models has a lookup() function which will download the required
-    # model from S3 to perform the similarity check if not already downloaded
-    # These are current Gensim models but can be others, see class NLPModel
-    job_model = D2VModel()
-    res_model = D2VModel()
-    train_model = D2VModel()
-
-    def add_doc(self, parent_dir, file_glob):
-        ... # upload doc to S3 repository
-
-    def del_doc(self, parent_dir, file_glob):
-        ... # delete doc from S3 repository 
-
-```
 ##### vec2rec.models.nlpmodels
+* Descriptor classes to store model specific data from preprocessed data, and the Gensim Doc2Vec model itself
+* NLPModel can be inherited and implemented with other models if available
 ```python
 class NLPModel:
     ... # Abstract class with all functions implemented in D2VModel
@@ -216,7 +240,23 @@ class D2VModel(NLPModel):
     def lookup(self, text=None, filepath=None, top_n=3):
         ... # lookup with text or filepath local or S3. Filepath can be a list
         # top_n returns to top N similar records from the repo
+```
+##### vec2rec.frontend.vec2rec
+* class Vec2Rec - main class for the CLI or UI - models used can be replaced
+```python
+class Vec2Rec: # the class used by the front end
+    # each of these models has a lookup() function which will download the required
+    # model from S3 to perform the similarity check if not already downloaded
+    # These are current Gensim models but can be others, see class NLPModel
+    job_model = D2VModel()
+    res_model = D2VModel()
+    train_model = D2VModel()
 
+    def add_doc(self, parent_dir, file_glob):
+        ... # upload doc to S3 repository
+
+    def del_doc(self, parent_dir, file_glob):
+        ... # delete doc from S3 repository 
 ```
 ##### vec2rec.kfp.vec2rec_pipeline
 Functions in this file is used to generate the definition file in yaml.
@@ -293,45 +333,7 @@ def vec2rec_pipeline(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY):
 
 if __name__ == "__main__":
     kfp.compiler.Compiler().compile(vec2rec_pipeline, __file__ + ".yaml") # compile defn to yaml
-
 ```
-# Technology Stack
-* Gensim Doc2vec
-* Python – Descriptors, Iterators
-* Kubflow Pipeline and Docker
-* Dask Dataframe, Dask Delay, Pandas and Parquet
-* Natural Language toolkit (NLTK) and Krovetz Stemmer, PyPDF4
-* S3
-* Argparse (Future: Flask)
-
-# Design Choices & Implementation Considerations
-## 1) Preserve computation steps to allow easy reruns under different config / data updates
-* Kubeflow pipeline allows easy reruns for each step.
-* The serialization of the 3 generated artifact types minimize the number of reruns needed
-  * For activities such as
-    * Addition/Remove of data
-    * Retrain with different parameters
-    * Restarts
-  * Features
-    * Generic processed data can be updated incrementally
-    * Doc2Vec formatted data cannot be updated incrementally but left provision for future enhancement for serialization method such as pickle
-    * Segregated model avoid total retrain for doc types on changes
-    * Saved Models avoid total recalculation of models over restarts
-## 2) Modularize components and enable future enhancement / replacement
-* Docker phases in Kubeflow allow replacement for whole phases
-* Usage of Descriptor in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
-## 3) Enhance parallelization on computation and Memory Efficiency
-* Use of Dask Dataframe and Dask Delayed increases parallelization
-* Some attempts are made to reduce memory footprint during preprocessing by using iterators, but Doc2vec requires whole corpus to be in memory during training
-* Temporary training data in Doc2vec model is deleted after training to reduce memory full print for lookup engine
-## 4) Allow incremental growth to lookup database
-* Interface is added to modify raw data of lookup database
-* Allow Incremental updates up to generic preprocessed data
-* Gensim Doc2vec does not allow incremental update of models
-## 5) Centralized Repository
-* S3 being the most easily implemented repository for document-type raw data
-* Database may have better performance as interim data storage, but still cannot store saved models
-
 # Future Enhancements
 * Weighted importance based on
   * record age – with decaying importance
