@@ -27,7 +27,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
 ## Architecture
 ![Architecture Diagram](/vec2rec/images/arch_diag.png)
 
-# Technology Stack
+## Technology Stack
 * Gensim Doc2vec
 * Python – Descriptors, Iterators
 * Kubflow Pipeline and Docker
@@ -36,8 +36,8 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
 * S3
 * Argparse (Future: Flask)
 
-# Design Choices & Implementation Considerations
-## 1) Preserve computation steps to allow easy reruns under different config / data updates
+## Design Choices & Implementation Considerations
+### 1) Preserve computation steps to allow easy reruns under different config / data updates
 * Kubeflow pipeline allows easy reruns for each step.
 * The serialization of the 3 generated artifact types minimize the number of reruns needed
   * For activities such as
@@ -49,21 +49,21 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
     * Doc2Vec formatted data cannot be updated incrementally but left provision for future enhancement for serialization method such as pickle
     * Segregated model avoid total retrain for doc types on changes
     * Saved Models avoid total recalculation of models over restarts
-## 2) Modularize components and enable future enhancement / replacement
+### 2) Modularize components and enable future enhancement / replacement
 * Docker phases in Kubeflow allow replacement for whole phases
 * Usage of Descriptor in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
-## 3) Enhance parallelization on computation and Memory Efficiency
+### 3) Enhance parallelization on computation and Memory Efficiency
 * Use of Dask Dataframe and Dask Delayed increases parallelization
 * Some attempts are made to reduce memory footprint during preprocessing by using iterators, but Doc2vec requires whole corpus to be in memory during training
 * Temporary training data in Doc2vec model is deleted after training to reduce memory full print for lookup engine
-## 4) Allow incremental growth to lookup database
+### 4) Allow incremental growth to lookup database
 * Interface is added to modify raw data of lookup database
 * Allow Incremental updates up to generic preprocessed data
 * Gensim Doc2vec does not allow incremental update of models
-## 5) Centralized Repository
+### 5) Centralized Repository
 * S3 being the most easily implemented repository for document-type raw data
 * Database may have better performance as interim data storage, but still cannot store saved models
-## Component
+## Components
 ### Batch processing – to produce Gensim Doc2Vec models for similarity lookups
 * There are 4 types of artifacts, raw data, preprocessed generic data, Gensim Doc2vec formatted training and testing data, and trained model(s). All of these are stored on S3.
 * The Kubeflow Pipeline enables modularization and reruns. Each stage is a docker which can be replaced, even with non-python dockers as long as it produces results with correct format
