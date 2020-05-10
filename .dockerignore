@@ -1,1 +1,3 @@
-vec2rec/data
+vec2rec/data/error_doc
+vec2rec/data/models/*
+vec2rec/data/parquet/*
