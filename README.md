@@ -202,23 +202,20 @@ class NLPModel:
 class D2VModel(NLPModel):
     def __init__(self, vector_size=75, min_count=2, epochs=40, test_ratio=0.3):
         ... # Initialize model in class var
-    def build_corpus(self, parent_dir, file_path):
+    def build_corpus(self, parent_dir, file_path, test_ratio=1 / 3):
         ... # reads in a parquet file from local/S3 and build corpus
     def train(self, epochs=None):
         ... # builds vocab and train model in class var
-    def test(self, topn=3):
+    def test(self, sample=1, top_n=2):
         ... # calculate accuracy with training data – doc itself should have
         # highest similarity. The print out the topn similarity with the testing data
     def load_model(self, parent_dir, file_path):
         ... # load saved model from local/S3 & store in class var
     def save_model(self, parent_dir, filepath):
         ... # save model into file and upload to local/S3
-    def lookup(self, text, filepath, top_n=3, return_type="text"):
+    def lookup(self, text=None, filepath=None, top_n=3):
         ... # lookup with text or filepath local or S3. Filepath can be a list
-        # return_type = “text”: returns a dict with top N {file text: sim score}
-        # return_type = “path”: returns a dict w/top N {S3 URL: similarity score}
-        # lookup_type: data type returned in [“resume”, “job”, “train”]
-        # model: model used for lookup, valid values are [“all”, “single”]  
+        # top_n returns to top N similar records from the repo
 
 ```
 ##### vec2rec.kfp.vec2rec_pipeline
