@@ -241,7 +241,8 @@ This kind of structure forces you to restructure your code and can be very
 cumbersome as all variables are not shared.
 
 Python functions can also be directly converted into container phases without
-uploading containers, tho these are still functions which does not
+uploading containers, tho these are still functions which does not share variables
+with other steps.
 ```python
 import kfp
 from kfp import dsl
@@ -253,7 +254,7 @@ def preprocess_op(parent_dir=S3_BUCKET_BASE, chunk=20, doc_type="all", local_dir
         image=f"crispinnosidam/vec2rec:{img_ver}",
         command=["pipenv", "run", "python", "-W", "ignore", "-m", "vec2rec",],
         # ...
-        file_outputs=[ file1, file2, file3 ],
+        file_outputs=[...], # file path to be passed to next step
     )
 
 def train_op( resume_path, job_path, train_path, parent_dir=S3_BUCKET_BASE,
@@ -266,8 +267,21 @@ def train_op( resume_path, job_path, train_path, parent_dir=S3_BUCKET_BASE,
             dsl.InputArgumentPath(argument=resume_path),
             dsl.InputArgumentPath(argument=job_path),
             dsl.InputArgumentPath(argument=train_path),
-        ],
-        command=["pipenv", "run", "python", "-W", "ignore", "-m", "vec2rec",],
+        ], # file paths to this step
+        command=["pipenv", "run", "python", "-W", "ignore", "-m", "vec2rec",]
+        + ["-p", parent_dir, "train", ],
+        # ... other params
+        file_outputs=[...], # file paths to be passed to next step
+    )
+
+def test_op(input_path, parent_dir=LOCAL_BASE, sample=1, top_n=2, doc_type="all"):
+    return dsl.ContainerOp(
+        name="test",
+        image=f"crispinnosidam/vec2rec:{img_ver}",
+        artifact_argument_paths=[...], # file paths to this step
+        command=["pipenv", "run", "python", "-W", "ignore", "-m", "vec2rec",]
+        + ["-p", parent_dir, "test", ]
+        # ... other params
     )
 
 @dsl.pipeline(name="my testing pipeline", description="my testing pipeline description")
@@ -277,10 +291,11 @@ def vec2rec_pipeline(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY):
     tr_op = train_op(
         pp_op.outputs["resume"], pp_op.outputs["job"], pp_op.outputs["train"]
     )
+    tt_op = test_op(tr_op.outputs)
     ...
 
 if __name__ == "__main__":
-    kfp.compiler.Compiler().compile(vec2rec_pipeline, __file__ + ".yaml")
+    kfp.compiler.Compiler().compile(vec2rec_pipeline, __file__ + ".yaml") # compile defn to yaml
 
 ```
 # Technology Stack
