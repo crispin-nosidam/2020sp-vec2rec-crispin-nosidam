@@ -1,51 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: my-testing-pipeline-
+  generateName: vec2rec-
   annotations: {pipelines.kubeflow.org/pipeline_spec: '{"description": "Vec2Rec Model
       Building Pipeline", "inputs": [{"name": "AWS_ACCESS_KEY_ID"}, {"name": "AWS_SECRET_ACCESS_KEY"}],
-      "name": "my testing pipeline"}'}
+      "name": "vec2rec"}'}
 spec:
-  entrypoint: my-testing-pipeline
+  entrypoint: vec2rec
   templates:
-  - name: my-testing-pipeline
-    inputs:
-      parameters:
-      - {name: AWS_ACCESS_KEY_ID}
-      - {name: AWS_SECRET_ACCESS_KEY}
-    dag:
-      tasks:
-      - name: preprocess
-        template: preprocess
-        arguments:
-          parameters:
-          - {name: AWS_ACCESS_KEY_ID, value: '{{inputs.parameters.AWS_ACCESS_KEY_ID}}'}
-          - {name: AWS_SECRET_ACCESS_KEY, value: '{{inputs.parameters.AWS_SECRET_ACCESS_KEY}}'}
-      - name: test
-        template: test
-        dependencies: [train]
-        arguments:
-          artifacts:
-          - {name: train-job_model, from: '{{tasks.train.outputs.artifacts.train-job_model}}'}
-          - {name: train-job_test_parquet, from: '{{tasks.train.outputs.artifacts.train-job_test_parquet}}'}
-          - {name: train-job_train_parquet, from: '{{tasks.train.outputs.artifacts.train-job_train_parquet}}'}
-          - {name: train-resume_model, from: '{{tasks.train.outputs.artifacts.train-resume_model}}'}
-          - {name: train-resume_test_parquet, from: '{{tasks.train.outputs.artifacts.train-resume_test_parquet}}'}
-          - {name: train-resume_train_parquet, from: '{{tasks.train.outputs.artifacts.train-resume_train_parquet}}'}
-          - {name: train-train_model, from: '{{tasks.train.outputs.artifacts.train-train_model}}'}
-          - {name: train-train_test_parquet, from: '{{tasks.train.outputs.artifacts.train-train_test_parquet}}'}
-          - {name: train-train_train_parquet, from: '{{tasks.train.outputs.artifacts.train-train_train_parquet}}'}
-      - name: train
-        template: train
-        dependencies: [preprocess]
-        arguments:
-          parameters:
-          - {name: AWS_ACCESS_KEY_ID, value: '{{inputs.parameters.AWS_ACCESS_KEY_ID}}'}
-          - {name: AWS_SECRET_ACCESS_KEY, value: '{{inputs.parameters.AWS_SECRET_ACCESS_KEY}}'}
-          artifacts:
-          - {name: preprocess-job, from: '{{tasks.preprocess.outputs.artifacts.preprocess-job}}'}
-          - {name: preprocess-resume, from: '{{tasks.preprocess.outputs.artifacts.preprocess-resume}}'}
-          - {name: preprocess-train, from: '{{tasks.preprocess.outputs.artifacts.preprocess-train}}'}
   - name: preprocess
     container:
       command: [pipenv, run, python, -W, ignore, -m, vec2rec, -p, /app/vec2rec/data,
@@ -99,14 +61,52 @@ spec:
     outputs:
       artifacts:
       - {name: train-job_model, path: /tmp/data/models/job_model}
-      - {name: train-job_test_parquet, path: /tmp/data/parquet/job.parquet}
-      - {name: train-job_train_parquet, path: /tmp/data/parquet/job.parquet}
+      - {name: train-job_test_parquet, path: /tmp/data/parquet/job_test.parquet}
+      - {name: train-job_train_parquet, path: /tmp/data/parquet/job_train.parquet}
       - {name: train-resume_model, path: /tmp/data/models/resume_model}
-      - {name: train-resume_test_parquet, path: /tmp/data/parquet/resume.parquet}
-      - {name: train-resume_train_parquet, path: /tmp/data/parquet/resume.parquet}
+      - {name: train-resume_test_parquet, path: /tmp/data/parquet/resume_test.parquet}
+      - {name: train-resume_train_parquet, path: /tmp/data/parquet/resume_train.parquet}
       - {name: train-train_model, path: /tmp/data/models/train_model}
-      - {name: train-train_test_parquet, path: /tmp/data/parquet/train.parquet}
-      - {name: train-train_train_parquet, path: /tmp/data/parquet/train.parquet}
+      - {name: train-train_test_parquet, path: /tmp/data/parquet/train_test.parquet}
+      - {name: train-train_train_parquet, path: /tmp/data/parquet/train_train.parquet}
+  - name: vec2rec
+    inputs:
+      parameters:
+      - {name: AWS_ACCESS_KEY_ID}
+      - {name: AWS_SECRET_ACCESS_KEY}
+    dag:
+      tasks:
+      - name: preprocess
+        template: preprocess
+        arguments:
+          parameters:
+          - {name: AWS_ACCESS_KEY_ID, value: '{{inputs.parameters.AWS_ACCESS_KEY_ID}}'}
+          - {name: AWS_SECRET_ACCESS_KEY, value: '{{inputs.parameters.AWS_SECRET_ACCESS_KEY}}'}
+      - name: test
+        template: test
+        dependencies: [train]
+        arguments:
+          artifacts:
+          - {name: train-job_model, from: '{{tasks.train.outputs.artifacts.train-job_model}}'}
+          - {name: train-job_test_parquet, from: '{{tasks.train.outputs.artifacts.train-job_test_parquet}}'}
+          - {name: train-job_train_parquet, from: '{{tasks.train.outputs.artifacts.train-job_train_parquet}}'}
+          - {name: train-resume_model, from: '{{tasks.train.outputs.artifacts.train-resume_model}}'}
+          - {name: train-resume_test_parquet, from: '{{tasks.train.outputs.artifacts.train-resume_test_parquet}}'}
+          - {name: train-resume_train_parquet, from: '{{tasks.train.outputs.artifacts.train-resume_train_parquet}}'}
+          - {name: train-train_model, from: '{{tasks.train.outputs.artifacts.train-train_model}}'}
+          - {name: train-train_test_parquet, from: '{{tasks.train.outputs.artifacts.train-train_test_parquet}}'}
+          - {name: train-train_train_parquet, from: '{{tasks.train.outputs.artifacts.train-train_train_parquet}}'}
+      - name: train
+        template: train
+        dependencies: [preprocess]
+        arguments:
+          parameters:
+          - {name: AWS_ACCESS_KEY_ID, value: '{{inputs.parameters.AWS_ACCESS_KEY_ID}}'}
+          - {name: AWS_SECRET_ACCESS_KEY, value: '{{inputs.parameters.AWS_SECRET_ACCESS_KEY}}'}
+          artifacts:
+          - {name: preprocess-job, from: '{{tasks.preprocess.outputs.artifacts.preprocess-job}}'}
+          - {name: preprocess-resume, from: '{{tasks.preprocess.outputs.artifacts.preprocess-resume}}'}
+          - {name: preprocess-train, from: '{{tasks.preprocess.outputs.artifacts.preprocess-train}}'}
   arguments:
     parameters:
     - {name: AWS_ACCESS_KEY_ID}

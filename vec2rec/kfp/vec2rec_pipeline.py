@@ -50,14 +50,14 @@ def train_op(
 ):
     file_outputs = (
         {
-            "resume_train_parquet": f"{LOCAL_BASE}/parquet/resume.parquet",
-            "resume_test_parquet": f"{LOCAL_BASE}/parquet/resume.parquet",
+            "resume_train_parquet": f"{LOCAL_BASE}/parquet/resume_train.parquet",
+            "resume_test_parquet": f"{LOCAL_BASE}/parquet/resume_test.parquet",
             "resume_model": f"{LOCAL_BASE}/models/resume_model",
-            "job_train_parquet": f"{LOCAL_BASE}/parquet/job.parquet",
-            "job_test_parquet": f"{LOCAL_BASE}/parquet/job.parquet",
+            "job_train_parquet": f"{LOCAL_BASE}/parquet/job_train.parquet",
+            "job_test_parquet": f"{LOCAL_BASE}/parquet/job_test.parquet",
             "job_model": f"{LOCAL_BASE}/models/job_model",
-            "train_train_parquet": f"{LOCAL_BASE}/parquet/train.parquet",
-            "train_test_parquet": f"{LOCAL_BASE}/parquet/train.parquet",
+            "train_train_parquet": f"{LOCAL_BASE}/parquet/train_train.parquet",
+            "train_test_parquet": f"{LOCAL_BASE}/parquet/train_test.parquet",
             "train_model": f"{LOCAL_BASE}/models/train_model",
         }
         if doc_type == "all"
@@ -178,7 +178,7 @@ def test_op(input_path, parent_dir=LOCAL_BASE, sample=1, top_n=2, doc_type="all"
     )
 
 
-@dsl.pipeline(name="my testing pipeline", description="Vec2Rec Model Building Pipeline")
+@dsl.pipeline(name="vec2rec", description="Vec2Rec Model Building Pipeline")
 def vec2rec_pipeline(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY):
     # def vec2rec_pipeline():
     env_var1 = V1EnvVar(name="AWS_ACCESS_KEY_ID", value=AWS_ACCESS_KEY_ID)

@@ -18,3 +18,7 @@ python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp
 
 python -W ignore -m vec2rec del_doc -t "resume" -f "2Ben.pdf"
 python -W ignore -m vec2rec -p "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume" add_doc -t "resume" -f "2Ben.pdf"
+
+python -m vec2rec -p /app/vec2rec/data preprocess -c 20 -t all -l
+python -m vec2rec -p /tmp/data train -s 75 -m 2 -e 100 -tr 0.333333 -t all -l -ld /tmp/data
+python -m vec2rec -p /tmp/data test -s 1 -n 2 -t all
