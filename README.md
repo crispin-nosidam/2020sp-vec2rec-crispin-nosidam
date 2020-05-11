@@ -96,6 +96,7 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
     * As below: For jobs, 419 out of 442 samples is the #1 similar sample to itself so it is pretty good
     * For Trainings: only 190 is list as top so more training iteration or larger document vector may yield better results
   * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
+    * As below: The test document #191, which is not used in training the model, is picked and the most similar, the least similar and the middle one is listed.
 
 ![Testing Phase](/vec2rec/images/test.png)
 
