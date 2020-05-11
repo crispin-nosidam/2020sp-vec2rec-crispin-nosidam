@@ -221,7 +221,7 @@ optional arguments:
 ```
 
 ## Package Structure
-##### [vec2rec.preprocess.tools](/vec2rec/preprocess/tools.py)
+##### [vec2rec.preprocess.tools - click to see full file](/vec2rec/preprocess/tools.py)
 * class TokenData - Preprocess raw data and store. Dask dataframe is used for parallel processing
 * class Tokenizer - Descriptor of a tokenizer for data cleaning and tokenization. Dask Delayed is used for parallel processing.
 * class PDFReader - Descriptor of a PDFReader. Dask Delayed is used for parallel processing.
@@ -256,7 +256,7 @@ class Tokenizer: # only highlights are shown here
         ...         
 
 ```
-##### vec2rec.models.nlpmodels
+##### [vec2rec.models.nlpmodels - click to see full file](/vec2rec/models/nlpmodels.py)
 * Descriptor classes to store model specific data from preprocessed data, and the Gensim Doc2Vec model itself
 * NLPModel can be inherited and implemented with other models if available
 ```python
@@ -281,7 +281,7 @@ class D2VModel(NLPModel):
         ... # lookup with text or filepath local or S3. Filepath can be a list
         # top_n returns to top N similar records from the repo
 ```
-##### vec2rec.frontend.vec2rec
+##### [vec2rec.frontend.vec2rec - click to see full file](/vec2rec/frontend/vec2rec.py)
 * class Vec2Rec - main class for the CLI or UI - models used can be replaced
 ```python
 class Vec2Rec: # the class used by the front end
@@ -298,7 +298,7 @@ class Vec2Rec: # the class used by the front end
     def del_doc(self, parent_dir, file_glob):
         ... # delete doc from S3 repository 
 ```
-##### vec2rec.kfp.vec2rec_pipeline
+##### [vec2rec.kfp.vec2rec_pipeline - click to see full file](/vec2rec/kfp/vec2rec_pipeline.py)
 Functions in this file is used to generate the definition file in yaml.
 Each step returns a dsl.ContainerOp object which will ultimately be a runnable
 docker container in the pipeline.
