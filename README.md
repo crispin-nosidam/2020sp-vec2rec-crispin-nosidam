@@ -221,7 +221,7 @@ optional arguments:
 ```
 
 ## Package Structure
-##### vec2rec.preprocess.tools
+##### [vec2rec.preprocess.tools](/vec2rec/preprocess/tools.py)
 * class TokenData - Preprocess raw data and store. Dask dataframe is used for parallel processing
 * class Tokenizer - Descriptor of a tokenizer for data cleaning and tokenization. Dask Delayed is used for parallel processing.
 * class PDFReader - Descriptor of a PDFReader. Dask Delayed is used for parallel processing.
