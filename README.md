@@ -190,7 +190,7 @@ optional arguments:
 
 Finding Jobs from Text Entry
 
-![Finding Job from Text Entry](/vec2rec/images/job_from_text.png)
+![Finding Jobs from Text Entry](/vec2rec/images/job_from_text.png)
 
 Finding People from Text Entry
 
