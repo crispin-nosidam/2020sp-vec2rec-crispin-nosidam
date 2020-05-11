@@ -37,7 +37,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
 * Argparse (Future: Flask)
 
 ## Design Choices & Implementation Considerations
-### 1) Preserve computation steps to allow easy reruns under different config / data updates
+### 1) Memoization: Preserve computation steps to allow easy reruns under different config / data updates
 * Kubeflow pipeline allows easy reruns for each step.
 * The serialization of the 3 generated artifact types minimize the number of reruns needed
   * For activities such as
@@ -49,7 +49,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
     * Doc2Vec formatted data cannot be updated incrementally but left provision for future enhancement for serialization method such as pickle
     * Segregated model avoid total retrain for doc types on changes
     * Saved Models avoid total recalculation of models over restarts
-### 2) Modularize components and enable future enhancement / replacement
+### 2) Modularity/Composability of components to enable future enhancement / replacement
 * Docker phases in Kubeflow allow replacement for whole phases
 * Usage of Descriptor in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
 ### 3) Enhance parallelization on computation and Memory Efficiency
