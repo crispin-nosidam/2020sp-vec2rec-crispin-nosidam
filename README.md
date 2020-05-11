@@ -74,6 +74,9 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * File format converter is implemented as descriptor to be easily replaceable
   * Preprocessing includes conversion to lower case, UTF-8 charset, removal of NLTK stopwords and punctuations, and the use of Krovetz Stemmer, which seems to have better conversion results than some others like the NLTK stemming or lemmatization; dropping of short and infrequent words
   * Preprocessing is implemented as a descriptor to be easily replaceable
+  
+![Preprocess Phase](/vec2rec/images/preprocess.png)
+
 * **Gensim Doc2vec preprocessing phase** split training/testing set in dataframes on Parquet and convert into Gensim Doc2Vec Training and Testing Corpus
   * Specifically detached from the generic phase to allow Doc2vec engine to be replaced
   * Final point where incremental updates are possible as Doc2vec models are not.
@@ -85,20 +88,46 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
       * Better retrain performance
     * Model with all data meshed together (Future Enhancement)
       * Larger sample size, more complete vocabulary
+      
+![Training Phase](/vec2rec/images/train.png)
+
 * **Gensim Doc2vec testing phase** uses the both the training data and testing data to evaluate the model performance. This phase is not exposed to the user.
   * Training data: should have best similarity to itself
   * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
  
-![Preprocess Phase](/vec2rec/images/preprocess.png)
-
-![Training Phase](/vec2rec/images/train.png)
-
 ![Testing Phase](/vec2rec/images/test.png)
 
 ### Front end – for Similarity Queries
 * Includes
   * CLI Python Module with argparse
   * Flask API (Future Enhancement)
+
+* Features
+  * Allows lookup from either text entry, and 1 or more documents (e.g.: Resume + Job)
+  * Returns similarity scores for confidence level
+  * Returns URL + doc ID which can be used to retrieve the original doc
+
+Finding Jobs from Text Entry
+
+![Finding Jobs from Text Entry](/vec2rec/images/job_from_text.png)
+
+Finding People from Text Entry
+
+![Finding People from Text Entry](/vec2rec/images/resume_from_text.png)
+
+![Finding People from Text Entry](/vec2rec/images/resume_from_text2.png)
+
+Finding Training from Text Entry
+
+![Finding Training from Text Entry](/vec2rec/images/train_from_text.png)
+
+Finding Jobs from Resume
+
+![Finding Jobs from Resume](/vec2rec/images/job_from_doc.png)
+
+What-if scenario from a Resume and a Training
+
+![What-if scenario from Resume + Training](/vec2rec/images/job_from_multi_doc.png)
 
 #### Functions of CLI:
 ##### Top Level Options
@@ -187,28 +216,6 @@ optional arguments:
   -t {resume,job,train}, --type {resume,job,train}
                         Doctype for action
 ```
-
-Finding Jobs from Text Entry
-
-![Finding Jobs from Text Entry](/vec2rec/images/job_from_text.png)
-
-Finding People from Text Entry
-
-![Finding People from Text Entry](/vec2rec/images/resume_from_text.png)
-
-![Finding People from Text Entry](/vec2rec/images/resume_from_text2.png)
-
-Finding Training from Text Entry
-
-![Finding Training from Text Entry](/vec2rec/images/train_from_text.png)
-
-Finding Jobs from Resume
-
-![Finding Jobs from Resume](/vec2rec/images/job_from_doc.png)
-
-What-if scenario from a Resume and a Training
-
-![What-if scenario from Resume + Training](/vec2rec/images/job_from_multi_doc.png)
 
 ## Package Structure
 ##### vec2rec.preprocess.tools
