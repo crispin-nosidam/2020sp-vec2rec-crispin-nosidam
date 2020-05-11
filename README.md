@@ -299,7 +299,8 @@ class Vec2Rec: # the class used by the front end
         ... # delete doc from S3 repository 
 ```
 ##### [vec2rec.kfp.vec2rec_pipeline - click to see full file](/vec2rec/kfp/vec2rec_pipeline.py)
-Functions in this file is used to generate the definition file in yaml.
+##### [vec2rec.kfp.vec2rec_pipeline Generated YAML - click to see full file](/vec2rec/kfp/vec2rec_pipeline.yaml)
+Functions in this file are used to generate the definition file in yaml.
 Each step returns a dsl.ContainerOp object which will ultimately be a runnable
 docker container in the pipeline.
 
