@@ -321,6 +321,11 @@ Python functions can also be directly converted into container phases without
 uploading containers, tho these are still functions which does not share variables
 with other steps.
 
+In here: the phases and the pipeline are implemented as below:
+* Preprocess phase: preprocess_op()
+* Training phase: train_op()
+* Testing phase: test_op()
+* The pipeline: vec2rec_pipeline()
 ```python
 import kfp
 from kfp import dsl
