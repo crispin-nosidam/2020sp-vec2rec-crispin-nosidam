@@ -132,7 +132,7 @@ What-if scenario from a Resume and a Training
 
 ![What-if scenario from Resume + Training](/vec2rec/images/job_from_multi_doc.png)
 
-#### Functions of CLI:
+#### Functions of CLI - see code [here](/vec2rec/cli.py):
 ##### Top Level Options
 ```text
 usage: vec2rec [-h] [-p PARENT_DIR]
