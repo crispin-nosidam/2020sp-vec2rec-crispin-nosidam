@@ -12,13 +12,21 @@ python -W ignore -m vec2rec test
 python -W ignore -m vec2rec test -s 2
 python -W ignore -m vec2rec test -s 2 -n 1
 
-python -W ignore -m vec2rec lookup -s "computer engineer" -t "job"
-python -W ignore -m vec2rec lookup -s "computer engineer" -t "job" -n 1
-python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\1Amy.pdf" "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\2Ben.pdf" -t "job"
-
 python -W ignore -m vec2rec del_doc -t "resume" -f "2Ben.pdf"
 python -W ignore -m vec2rec -p "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume" add_doc -t "resume" -f "2Ben.pdf"
 
 python -m vec2rec -p /app/vec2rec/data preprocess -c 20 -t all -l
 python -m vec2rec -p /tmp/data train -s 75 -m 2 -e 100 -tr 0.333333 -t all -l -ld /tmp/data
 python -m vec2rec -p /tmp/data test -s 1 -n 2 -t all
+python -W ignore -m vec2rec train -s 100 -m 2 -e 500 -tr 0.333333 -t train
+python -W ignore -m vec2rec test -t train
+
+python -W ignore -m vec2rec lookup -s "computer engineer" -t "job"
+python -W ignore -m vec2rec lookup -s "computer engineer" -t "job" -n 1
+python -W ignore -m vec2rec lookup -s "accountant" -t "job" -n 1
+python -W ignore -m vec2rec lookup -s "computer engineer" -t "resume" -n 1
+python -W ignore -m vec2rec lookup -s "biological science" -t "train" -n 3
+python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\1Amy.pdf" -t "job" -n 1
+python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\1Amy.pdf" "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\input\IT Training.xlsx" -t "job" -n 1
+python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\a2.pdf" -t "job" -n 1
+python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\a2.pdf" "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\input\IT Training.xlsx" -t "job" -n 1
