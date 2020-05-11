@@ -106,9 +106,12 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * Flask API (Future Enhancement)
 
 * Features
-  * Allows lookup from either text entry, and 1 or more documents (e.g.: Resume + Job)
-  * Returns similarity scores for confidence level
-  * Returns URL + doc ID which can be used to retrieve the original doc
+  * Lookup
+      * Allows lookup from either text entry, and 1 or more documents (e.g.: Resume + Job)
+      * Returns similarity scores for confidence level
+      * Returns URL + doc ID which can be used to retrieve the original doc
+  * Add Doc / Remove Doc to repo
+  * Preprocess / Training / Testing Phases are also triggered by CLI and called by Kubeflow Dockers
 
 Finding Jobs from Text Entry
 
