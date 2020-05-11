@@ -83,8 +83,8 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * Currently merged w/ training phase as corpus serialization is not implemented.
 * **Gensim Doc2vec training phase** builds the doc2vec model from training corpus
   * Currently, incremental update is not supported by Doc2Vec the model needs to be retrained whenever there are additions/removal to corpus
-  * 4 models are built
-    * Models from each data type – resumes, job desc, train desc
+  * Trade-offs for grouping of models
+    * 1 Model from each data type – resumes, job desc, train desc (Implemented)
       * Better retrain performance
     * Model with all data meshed together (Future Enhancement)
       * Larger sample size, more complete vocabulary
@@ -93,8 +93,10 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
 
 * **Gensim Doc2vec testing phase** uses the both the training data and testing data to evaluate the model performance. This phase is not exposed to the user.
   * Training data: should have best similarity to itself
+    * As below: For jobs, 419 out of 442 samples is the #1 similar sample to itself so it is pretty good
+    * For Trainings: only 190 is list as top so more training iteration or larger document vector may yield better results
   * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
- 
+
 ![Testing Phase](/vec2rec/images/test.png)
 
 ### Front end – for Similarity Queries
