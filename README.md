@@ -281,6 +281,13 @@ cumbersome as all variables are not shared.
 Python functions can also be directly converted into container phases without
 uploading containers, tho these are still functions which does not share variables
 with other steps.
+
+![Preprocess Phase](/vec2rec/images/preprocess.png)
+
+![Training Phase](/vec2rec/images/train.png)
+
+![Testing Phase](/vec2rec/images/test.png)
+
 ```python
 import kfp
 from kfp import dsl
