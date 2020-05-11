@@ -89,6 +89,12 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * Training data: should have best similarity to itself
   * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
  
+![Preprocess Phase](/vec2rec/images/preprocess.png)
+
+![Training Phase](/vec2rec/images/train.png)
+
+![Testing Phase](/vec2rec/images/test.png)
+
 ### Front end – for Similarity Queries
 * Includes
   * CLI Python Module with argparse
@@ -181,6 +187,29 @@ optional arguments:
   -t {resume,job,train}, --type {resume,job,train}
                         Doctype for action
 ```
+
+Finding Jobs from Text Entry
+
+![Finding Job from Text Entry](/vec2rec/images/job_from_text.png)
+
+Finding People from Text Entry
+
+![Finding People from Text Entry](/vec2rec/images/resume_from_text.png)
+
+![Finding People from Text Entry](/vec2rec/images/resume_from_text2.png)
+
+Finding Training from Text Entry
+
+![Finding Training from Text Entry](/vec2rec/images/train_from_text.png)
+
+Finding Jobs from Resume
+
+![Finding Jobs from Resume](/vec2rec/images/job_from_doc.png)
+
+What-if scenario from a Resume and a Training
+
+![What-if scenario from Resume + Training](/vec2rec/images/job_from_multi_doc.png)
+
 ## Package Structure
 ##### vec2rec.preprocess.tools
 * class TokenData - Preprocess raw data and store
@@ -281,12 +310,6 @@ cumbersome as all variables are not shared.
 Python functions can also be directly converted into container phases without
 uploading containers, tho these are still functions which does not share variables
 with other steps.
-
-![Preprocess Phase](/vec2rec/images/preprocess.png)
-
-![Training Phase](/vec2rec/images/train.png)
-
-![Testing Phase](/vec2rec/images/test.png)
 
 ```python
 import kfp

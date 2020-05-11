@@ -24,8 +24,9 @@ python -W ignore -m vec2rec test -t train
 python -W ignore -m vec2rec lookup -s "computer engineer" -t "job"
 python -W ignore -m vec2rec lookup -s "computer engineer" -t "job" -n 1
 python -W ignore -m vec2rec lookup -s "accountant" -t "job" -n 1
-python -W ignore -m vec2rec lookup -s "computer engineer" -t "resume" -n 1
+python -W ignore -m vec2rec lookup -s "accountant" -t "resume" -n 1
 python -W ignore -m vec2rec lookup -s "biological science" -t "train" -n 3
+python -W ignore -m vec2rec lookup -s "Screen Writing" -t "train" -n 3
 python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\1Amy.pdf" -t "job" -n 1
 python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\1Amy.pdf" "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\input\IT Training.xlsx" -t "job" -n 1
 python -W ignore -m vec2rec lookup -f "C:\Users\kerkermui\PycharmProjects\2020sp-vec2rec-crispin-nosidam\vec2rec\data\resume\a2.pdf" -t "job" -n 1
