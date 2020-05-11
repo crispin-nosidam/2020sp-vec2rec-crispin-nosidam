@@ -37,7 +37,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
 * Argparse (Future: Flask)
 
 ## Design Choices & Implementation Considerations
-### 1) Preserve computation steps to allow easy reruns under different config / data updates
+### 1) Memoization: Preserve computation steps to allow easy reruns under different config / data updates
 * Kubeflow pipeline allows easy reruns for each step.
 * The serialization of the 3 generated artifact types minimize the number of reruns needed
   * For activities such as
@@ -49,7 +49,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
     * Doc2Vec formatted data cannot be updated incrementally but left provision for future enhancement for serialization method such as pickle
     * Segregated model avoid total retrain for doc types on changes
     * Saved Models avoid total recalculation of models over restarts
-### 2) Modularize components and enable future enhancement / replacement
+### 2) Modularity/Composability of components to enable future enhancement / replacement
 * Docker phases in Kubeflow allow replacement for whole phases
 * Usage of Descriptor in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
 ### 3) Enhance parallelization on computation and Memory Efficiency
@@ -74,25 +74,63 @@ The following are all dockers images uploaded to DockerHub. The job definitions 
   * File format converter is implemented as descriptor to be easily replaceable
   * Preprocessing includes conversion to lower case, UTF-8 charset, removal of NLTK stopwords and punctuations, and the use of Krovetz Stemmer, which seems to have better conversion results than some others like the NLTK stemming or lemmatization; dropping of short and infrequent words
   * Preprocessing is implemented as a descriptor to be easily replaceable
+  
+![Preprocess Phase](/vec2rec/images/preprocess.png)
+
 * **Gensim Doc2vec preprocessing phase** split training/testing set in dataframes on Parquet and convert into Gensim Doc2Vec Training and Testing Corpus
   * Specifically detached from the generic phase to allow Doc2vec engine to be replaced
   * Final point where incremental updates are possible as Doc2vec models are not.
   * Currently merged w/ training phase as corpus serialization is not implemented.
 * **Gensim Doc2vec training phase** builds the doc2vec model from training corpus
   * Currently, incremental update is not supported by Doc2Vec the model needs to be retrained whenever there are additions/removal to corpus
-  * 4 models are built
-    * Models from each data type – resumes, job desc, train desc
+  * Trade-offs for grouping of models
+    * 1 Model from each data type – resumes, job desc, train desc (Implemented)
       * Better retrain performance
     * Model with all data meshed together (Future Enhancement)
       * Larger sample size, more complete vocabulary
+      
+![Training Phase](/vec2rec/images/train.png)
+
 * **Gensim Doc2vec testing phase** uses the both the training data and testing data to evaluate the model performance. This phase is not exposed to the user.
   * Training data: should have best similarity to itself
+    * As below: For jobs, 419 out of 442 samples is the #1 similar sample to itself so it is pretty good
+    * For Trainings: only 190 is list as top so more training iteration or larger document vector may yield better results
   * Testing data: in this project, eyeball verification is employed though more sophisticated methods are available
- 
+    * As below: The test document #191, which is not used in training the model, is picked and the most similar, the least similar and the middle one is listed.
+
+![Testing Phase](/vec2rec/images/test.png)
+
 ### Front end – for Similarity Queries
 * Includes
   * CLI Python Module with argparse
   * Flask API (Future Enhancement)
+
+* Features
+  * Allows lookup from either text entry, and 1 or more documents (e.g.: Resume + Job)
+  * Returns similarity scores for confidence level
+  * Returns URL + doc ID which can be used to retrieve the original doc
+
+Finding Jobs from Text Entry
+
+![Finding Jobs from Text Entry](/vec2rec/images/job_from_text.png)
+
+Finding People from Text Entry
+
+![Finding People from Text Entry](/vec2rec/images/resume_from_text.png)
+
+![Finding People from Text Entry](/vec2rec/images/resume_from_text2.png)
+
+Finding Training from Text Entry
+
+![Finding Training from Text Entry](/vec2rec/images/train_from_text.png)
+
+Finding Jobs from Resume
+
+![Finding Jobs from Resume](/vec2rec/images/job_from_doc.png)
+
+What-if scenario from a Resume and a Training
+
+![What-if scenario from Resume + Training](/vec2rec/images/job_from_multi_doc.png)
 
 #### Functions of CLI:
 ##### Top Level Options
@@ -181,11 +219,12 @@ optional arguments:
   -t {resume,job,train}, --type {resume,job,train}
                         Doctype for action
 ```
+
 ## Package Structure
-##### vec2rec.preprocess.tools
-* class TokenData - Preprocess raw data and store
-* class Tokenizer - Descriptor of a tokenizer for data cleaning and tokenization
-* class PDFReader - Descriptor of a PDFReader
+##### [vec2rec.preprocess.tools - click to see full file](/vec2rec/preprocess/tools.py)
+* class TokenData - Preprocess raw data and store. Dask dataframe is used for parallel processing
+* class Tokenizer - Descriptor of a tokenizer for data cleaning and tokenization. Dask Delayed is used for parallel processing.
+* class PDFReader - Descriptor of a PDFReader. Dask Delayed is used for parallel processing.
 ```python
 class TokenData: # only highlights are shown here
     def __init__(self, chunksize=20):
@@ -217,7 +256,7 @@ class Tokenizer: # only highlights are shown here
         ...         
 
 ```
-##### vec2rec.models.nlpmodels
+##### [vec2rec.models.nlpmodels - click to see full file](/vec2rec/models/nlpmodels.py)
 * Descriptor classes to store model specific data from preprocessed data, and the Gensim Doc2Vec model itself
 * NLPModel can be inherited and implemented with other models if available
 ```python
@@ -242,7 +281,7 @@ class D2VModel(NLPModel):
         ... # lookup with text or filepath local or S3. Filepath can be a list
         # top_n returns to top N similar records from the repo
 ```
-##### vec2rec.frontend.vec2rec
+##### [vec2rec.frontend.vec2rec - click to see full file](/vec2rec/frontend/vec2rec.py)
 * class Vec2Rec - main class for the CLI or UI - models used can be replaced
 ```python
 class Vec2Rec: # the class used by the front end
@@ -259,8 +298,9 @@ class Vec2Rec: # the class used by the front end
     def del_doc(self, parent_dir, file_glob):
         ... # delete doc from S3 repository 
 ```
-##### vec2rec.kfp.vec2rec_pipeline
-Functions in this file is used to generate the definition file in yaml.
+##### [vec2rec.kfp.vec2rec_pipeline - click to see full file](/vec2rec/kfp/vec2rec_pipeline.py)
+##### [vec2rec.kfp.vec2rec_pipeline Generated YAML - click to see full file](/vec2rec/kfp/vec2rec_pipeline.yaml)
+Functions in this file are used to generate the definition file in yaml.
 Each step returns a dsl.ContainerOp object which will ultimately be a runnable
 docker container in the pipeline.
 
@@ -282,12 +322,11 @@ Python functions can also be directly converted into container phases without
 uploading containers, tho these are still functions which does not share variables
 with other steps.
 
-![Preprocess Phase](/vec2rec/images/preprocess.png)
-
-![Training Phase](/vec2rec/images/train.png)
-
-![Testing Phase](/vec2rec/images/test.png)
-
+In here: the phases and the pipeline are implemented as below:
+* Preprocess phase: preprocess_op()
+* Training phase: train_op()
+* Testing phase: test_op()
+* The pipeline: vec2rec_pipeline()
 ```python
 import kfp
 from kfp import dsl
