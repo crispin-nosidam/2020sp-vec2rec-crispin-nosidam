@@ -29,7 +29,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
 
 ## Technology Stack
 * Gensim Doc2vec
-* Python – Descriptors, Iterators
+* Python – Composition, Iterators
 * Kubflow Pipeline and Docker
 * Dask Dataframe, Dask Delay, Pandas and Parquet
 * Natural Language toolkit (NLTK) and Krovetz Stemmer, PyPDF4
@@ -51,7 +51,7 @@ In addition, we can also run **what-if scenarios**, e.g.: with my current resume
     * Saved Models avoid total recalculation of models over restarts
 ### 2) Modularity/Composability of components to enable future enhancement / replacement
 * Docker phases in Kubeflow allow replacement for whole phases
-* Usage of Descriptor in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
+* Usage of Composition in PDF scrapper, Stemmer, data cleaning modules, even the main engine Doc2vec, allow the easy replacement of these modules
 ### 3) Enhance parallelization on computation and Memory Efficiency
 * Use of Dask Dataframe and Dask Delayed increases parallelization
 * Some attempts are made to reduce memory footprint during preprocessing by using iterators, but Doc2vec requires whole corpus to be in memory during training
@@ -226,8 +226,8 @@ optional arguments:
 ## Package Structure
 ##### [vec2rec.preprocess.tools - click to see full file](/vec2rec/preprocess/tools.py)
 * class TokenData - Preprocess raw data and store. Dask dataframe is used for parallel processing
-* class Tokenizer - Descriptor of a tokenizer for data cleaning and tokenization. Dask Delayed is used for parallel processing.
-* class PDFReader - Descriptor of a PDFReader. Dask Delayed is used for parallel processing.
+* class Tokenizer - Composable tokenizer for data cleaning and tokenization. Dask Delayed is used for parallel processing.
+* class PDFReader - Composable PDFReader. Dask Delayed is used for parallel processing.
 ```python
 class TokenData: # only highlights are shown here
     def __init__(self, chunksize=20):
@@ -260,7 +260,7 @@ class Tokenizer: # only highlights are shown here
 
 ```
 ##### [vec2rec.models.nlpmodels - click to see full file](/vec2rec/models/nlpmodels.py)
-* Descriptor classes to store model specific data from preprocessed data, and the Gensim Doc2Vec model itself
+* Composable classes to store model specific data from preprocessed data, and the Gensim Doc2Vec model itself
 * NLPModel can be inherited and implemented with other models if available
 ```python
 class NLPModel:
